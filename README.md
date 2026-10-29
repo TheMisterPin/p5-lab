@@ -56,7 +56,7 @@ Project utilities are exposed as `helpers`:
 
 ## Persistence and sandboxing
 
-Drawings and editor drafts are temporary. Nothing is saved to a database or local storage. Export your PNG or JavaScript before navigating away or refreshing; the two modes do not transfer their work to each other.
+Interactive canvases and editor drafts autosave to browser `localStorage` on this device. Each mode keeps its own named sketches. Use **Change sketch** to switch, create, rename, or delete. The two modes do not share sketches with each other, and nothing is uploaded to a server.
 
 Editor code runs in an `allow-scripts` iframe without `allow-same-origin`. It cannot access the parent document or its storage. This is access isolation, not CPU isolation: infinite loops can still make the tab unresponsive. Run only code you trust. Each Run replaces the iframe to discard the previous execution context.
 
@@ -96,6 +96,8 @@ No database, authentication, or API keys are required for these modes.
 - `components/ide/`: CodeMirror editor and preview controls.
 - `lib/ide/runtime.ts`: sandbox execution and console bridge.
 - `lib/ide/examples.ts`: starter JavaScript sketches.
+- `lib/sketches/`: localStorage sketch stores, serialization, and types.
+- `components/sketch-picker.tsx`: Change sketch dialog shared by both modes.
 - `public/sketch-runner.html`: isolated preview document.
 - `lib/shapes/`: typed shape capture and rendering utilities.
 - `lib/styles/gradients.ts`: gradient helpers.

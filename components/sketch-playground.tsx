@@ -4,7 +4,20 @@ import { useEffect, useRef, useState } from 'react'
 import type p5 from 'p5'
 import { ArrowUpRight, Code2, Download, Pause, Play, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ChangeSketchButton, SketchPicker, promptSketchName } from '@/components/sketch-picker'
 import { createSketch, type SketchControls, type ShapeTool } from '@/lib/sketch'
+import {
+  createInteractiveSketch,
+  deleteSketch,
+  getActiveSketch,
+  loadInteractiveStore,
+  renameSketch,
+  saveInteractiveStore,
+  setActiveSketch,
+  updateInteractiveShapes,
+  upsertSketch,
+} from '@/lib/sketches/storage'
+import type { InteractiveSketch, SketchStore } from '@/lib/sketches/types'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 const toolInstructions: Record<ShapeTool, string> = {
@@ -18,14 +31,32 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
   const host = useRef<HTMLDivElement>(null)
   const instance = useRef<p5 | null>(null)
   const controls = useRef<SketchControls>({ paused: false, reset: false, tool: 'pointer', drawingEnabled })
+  const storeRef = useRef<SketchStore<InteractiveSketch> | null>(null)
   const [tool, setTool] = useState<ShapeTool>('pointer')
   const [progress, setProgress] = useState({ count: 0, completed: false })
   const [paused, setPaused] = useState(false)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
   const [showSource, setShowSource] = useState(false)
+  const [store, setStore] = useState<SketchStore<InteractiveSketch> | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [canvasKey, setCanvasKey] = useState(0)
 
   useEffect(() => {
+    if (!drawingEnabled) return
+    const loaded = loadInteractiveStore()
+    storeRef.current = loaded
+    setStore(loaded)
+  }, [drawingEnabled])
+
+  const active = store ? getActiveSketch(store) : null
+  const activeId = active?.id
+
+  useEffect(() => {
+    if (drawingEnabled && !activeId) return
+    const initialShapes = drawingEnabled
+      ? (storeRef.current ? getActiveSketch(storeRef.current).shapes : [])
+      : []
     let disposed = false
     let sketch: p5 | undefined
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -33,8 +64,20 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
     controls.current.onCaptureProgress = (count, completed) => {
       if (!disposed) setProgress({ count, completed })
     }
+    controls.current.initialShapes = initialShapes
+    controls.current.onShapesChange = drawingEnabled
+      ? shapes => {
+        const current = storeRef.current
+        if (!current) return
+        const next = updateInteractiveShapes(current, current.activeId, shapes)
+        storeRef.current = next
+        saveInteractiveStore(next)
+        setStore(next)
+      }
+      : undefined
     setPaused(drawingEnabled || reducedMotion)
     controls.current.drawingEnabled = drawingEnabled
+    setReady(false)
 
     async function mount() {
       try {
@@ -54,7 +97,19 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
       sketch?.remove()
       instance.current = null
     }
-  }, [drawingEnabled])
+  }, [drawingEnabled, canvasKey, activeId])
+
+  function persist(next: SketchStore<InteractiveSketch>, remount = false) {
+    storeRef.current = next
+    saveInteractiveStore(next)
+    setStore(next)
+    if (remount) {
+      setProgress({ count: 0, completed: false })
+      setTool('pointer')
+      controls.current.tool = 'pointer'
+      setCanvasKey(key => key + 1)
+    }
+  }
 
   function togglePlayback() {
     const next = !controls.current.paused
@@ -69,11 +124,61 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
     if (controls.current.paused) instance.current?.redraw()
   }
 
+  function handleSelect(id: string) {
+    if (!store || id === store.activeId) return
+    persist(setActiveSketch(store, id), true)
+  }
+
+  function handleCreate() {
+    if (!store) return
+    const name = promptSketchName('Untitled canvas', 'create')
+    if (name === null) return
+    const sketch = createInteractiveSketch({ name })
+    persist(upsertSketch(store, sketch), true)
+  }
+
+  function handleRename(id: string) {
+    if (!store) return
+    const current = store.sketches.find(entry => entry.id === id)
+    if (!current) return
+    const name = promptSketchName(current.name, 'rename')
+    if (name === null) return
+    persist(renameSketch(store, id, name))
+  }
+
+  function handleDelete(id: string) {
+    if (!store) return
+    const current = store.sketches.find(entry => entry.id === id)
+    if (!current) return
+    if (!window.confirm(`Delete “${current.name}”? This cannot be undone.`)) return
+    const remount = store.activeId === id
+    persist(deleteSketch(store, id, () => createInteractiveSketch()), remount)
+  }
+
   return (
     <section aria-label="Sketch playground" className="flex flex-col gap-5">
+      {drawingEnabled && store && active && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{active.name}</p>
+            <p className="text-sm text-muted-foreground">Saved in this browser</p>
+          </div>
+          <ChangeSketchButton onClick={() => setPickerOpen(true)} />
+          <SketchPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            sketches={store.sketches}
+            activeId={store.activeId}
+            onSelect={handleSelect}
+            onCreate={handleCreate}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
+        </div>
+      )}
       <div className="overflow-hidden rounded-xl border bg-card text-card-foreground">
         <div className="flex items-center justify-between border-b px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2 text-sm font-medium"><Code2 className="size-4 text-muted-foreground" /> {drawingEnabled ? 'Untitled canvas' : 'sketch.ts'}</div>
+          <div className="flex items-center gap-2 text-sm font-medium"><Code2 className="size-4 text-muted-foreground" /> {drawingEnabled ? (active?.name ?? 'Untitled canvas') : 'sketch.ts'}</div>
           <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground" aria-live="polite">
             <span className="size-1.5 rounded-full bg-primary" />
             {error ? 'Load failed' : !ready ? 'Loading' : drawingEnabled ? 'Ready' : paused ? 'Paused' : 'Running'}
@@ -131,7 +236,7 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
           <p>Coordinate helpers live in <code className="font-mono">lib/utility/coordinate/mouse.ts</code>, gradient helpers in <code className="font-mono">lib/styles/gradients.ts</code>, and click collectors in <code className="font-mono">lib/shapes/</code>. Each completed shape is logged as a typed object containing real p5.Vector coordinates. Ellipses use a radius vector: x and y are the horizontal and vertical radii.</p>
         </div>}
       </div>}
-      {drawingEnabled && <p className="text-sm leading-6 text-muted-foreground">Drawings aren&apos;t saved automatically. Save a PNG before leaving this page.</p>}
+      {drawingEnabled && <p className="text-sm leading-6 text-muted-foreground">Shapes autosave to this browser. Use Change sketch to switch, create, rename, or delete canvases.</p>}
     </section>
   )
 }
