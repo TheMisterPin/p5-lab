@@ -4,6 +4,8 @@ import { createTriangleCapture, drawTriangle, type TriangleShape } from './shape
 import { createRectangleCapture, drawRectangle, type RectangleShape } from './shapes/rectangle'
 import { createEllipseCapture, drawEllipse, type EllipseShape } from './shapes/ellipse'
 import { applyGradientFill, createLinearGradient } from './styles/gradients'
+import { hydrateShapes, serializeShapes } from './sketches/serialize'
+import type { SerializedShape } from './sketches/types'
 
 export type ShapeTool = 'pointer' | 'triangle' | 'rectangle' | 'ellipse'
 export type SketchControls = {
@@ -11,7 +13,9 @@ export type SketchControls = {
   reset: boolean
   tool: ShapeTool
   drawingEnabled?: boolean
+  initialShapes?: SerializedShape[]
   onCaptureProgress?: (count: number, completed: boolean) => void
+  onShapesChange?: (shapes: SerializedShape[]) => void
 }
 
 export function createSketch(controls: SketchControls, onReady: () => void) {
@@ -28,6 +32,12 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
       ellipse: createEllipseCapture(p),
     }
     let shapes: (TriangleShape | RectangleShape | EllipseShape)[] = []
+    let shapesReady = false
+
+    function emitShapes() {
+      if (!shapesReady) return
+      controls.onShapesChange?.(serializeShapes(shapes))
+    }
 
     function syncTool() {
       if (activeTool === controls.tool) return
@@ -44,6 +54,8 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
       blue = styles.getPropertyValue('--ink-blue').trim() || blue
       foreground = styles.getPropertyValue('--foreground').trim() || foreground
       const canvas = p.createCanvas(800, 640)
+      shapes = hydrateShapes(p, controls.initialShapes ?? [])
+      shapesReady = true
       canvas.mouseClicked(() => {
         if (controls.drawingEnabled === false) return
         syncTool()
@@ -51,7 +63,10 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         if (!point || activeTool === 'pointer') return
         const capture = captures[activeTool]
         const shape = capture.addPoint(point)
-        if (shape) shapes.push(shape)
+        if (shape) {
+          shapes.push(shape)
+          emitShapes()
+        }
         controls.onCaptureProgress?.(capture.points.length, !!shape)
         if (controls.paused) void p.redraw()
       })
@@ -71,6 +86,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         Object.values(captures).forEach(capture => capture.reset())
         controls.onCaptureProgress?.(0, false)
         controls.reset = false
+        emitShapes()
       }
       p.background(paper)
       if (controls.drawingEnabled === false) {
