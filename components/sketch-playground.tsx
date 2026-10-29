@@ -29,11 +29,12 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
     let disposed = false
     let sketch: p5 | undefined
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    controls.current.paused = reducedMotion
+    controls.current.paused = drawingEnabled || reducedMotion
     controls.current.onCaptureProgress = (count, completed) => {
       if (!disposed) setProgress({ count, completed })
     }
-    setPaused(reducedMotion)
+    setPaused(drawingEnabled || reducedMotion)
+    controls.current.drawingEnabled = drawingEnabled
 
     async function mount() {
       try {
@@ -53,7 +54,7 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
       sketch?.remove()
       instance.current = null
     }
-  }, [])
+  }, [drawingEnabled])
 
   function togglePlayback() {
     const next = !controls.current.paused
@@ -72,14 +73,15 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
     <section aria-label="Sketch playground" className="flex flex-col gap-5">
       <div className="overflow-hidden rounded-xl border bg-card text-card-foreground">
         <div className="flex items-center justify-between border-b px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2 text-sm font-medium"><Code2 className="size-4 text-muted-foreground" /> sketch.ts</div>
+          <div className="flex items-center gap-2 text-sm font-medium"><Code2 className="size-4 text-muted-foreground" /> {drawingEnabled ? 'Untitled canvas' : 'sketch.ts'}</div>
           <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground" aria-live="polite">
             <span className="size-1.5 rounded-full bg-primary" />
-            {error ? 'Load failed' : !ready ? 'Loading' : paused ? 'Paused' : 'Running'}
+            {error ? 'Load failed' : !ready ? 'Loading' : drawingEnabled ? 'Ready' : paused ? 'Paused' : 'Running'}
           </div>
         </div>
         {drawingEnabled && <div className="flex flex-col gap-3 border-b p-4">
-          <ToggleGroup aria-label="Shape tool" variant="outline" value={[tool]} disabled={!ready} onValueChange={(values) => {
+          <p id="insert-shape-label" className="text-sm font-medium">Insert shape</p>
+          <ToggleGroup aria-labelledby="insert-shape-label" className="flex-wrap" variant="outline" value={[tool]} disabled={!ready} onValueChange={(values) => {
             const next = values[0] as ShapeTool | undefined
             if (!next) return
             controls.current.tool = next
@@ -93,7 +95,7 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
             <ToggleGroupItem value="ellipse">Ellipse</ToggleGroupItem>
           </ToggleGroup>
           <p className="text-sm leading-6 text-muted-foreground">{toolInstructions[tool]}</p>
-          {tool !== 'pointer' && <p role="status" className="font-mono text-sm">{progress.completed ? 'Shape logged to console. Click to start another.' : `${progress.count} / ${tool === 'triangle' ? 3 : 2} points captured`}</p>}
+          {tool !== 'pointer' && <p role="status" className="font-mono text-sm">{progress.completed ? 'Shape added. Click to start another.' : `${progress.count} / ${tool === 'triangle' ? 3 : 2} points captured`}</p>}
         </div>}
         <div className="relative aspect-[5/4] w-full">
           <div ref={host} className="sketch-canvas size-full" />
@@ -101,17 +103,17 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
         </div>
         <div className="flex flex-wrap items-center justify-between gap-y-3 border-t px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
-            <Button onClick={togglePlayback} disabled={!ready} size="lg">{paused ? <Play data-icon="inline-start" /> : <Pause data-icon="inline-start" />}{paused ? 'Play' : 'Pause'}</Button>
+            {!drawingEnabled && <Button onClick={togglePlayback} disabled={!ready} size="lg">{paused ? <Play data-icon="inline-start" /> : <Pause data-icon="inline-start" />}{paused ? 'Play' : 'Pause'}</Button>}
             <Button variant="ghost" size="lg" onClick={reset} disabled={!ready}><RotateCcw data-icon="inline-start" />Reset</Button>
           </div>
-          <Button variant="outline" size="lg" disabled={!ready} onClick={() => instance.current?.saveCanvas('ribbon-study', 'png')}><Download data-icon="inline-start" />Save PNG</Button>
+          <Button variant="outline" size="lg" disabled={!ready} onClick={() => instance.current?.saveCanvas(drawingEnabled ? 'my-sketch' : 'ribbon-study', 'png')}><Download data-icon="inline-start" />Save PNG</Button>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
         <p>{drawingEnabled ? 'Canvas coordinates: 800 × 640. Reset clears shapes.' : 'Move your cursor. See what happens.'}</p>
         <span className="font-mono">2D canvas · p5.js</span>
       </div>
-      <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary p-5 text-secondary-foreground sm:mt-7 sm:p-6">
+      {!drawingEnabled && <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary p-5 text-secondary-foreground sm:mt-7 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="font-medium">A little code. A lot of possibility.</h2>
@@ -128,7 +130,8 @@ export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: b
           <p><code className="font-mono">components/sketch-playground.tsx</code> handles browser-only loading, controls, and cleanup. No global variables or server-side canvas rendering.</p>
           <p>Coordinate helpers live in <code className="font-mono">lib/utility/coordinate/mouse.ts</code>, gradient helpers in <code className="font-mono">lib/styles/gradients.ts</code>, and click collectors in <code className="font-mono">lib/shapes/</code>. Each completed shape is logged as a typed object containing real p5.Vector coordinates. Ellipses use a radius vector: x and y are the horizontal and vertical radii.</p>
         </div>}
-      </div>
+      </div>}
+      {drawingEnabled && <p className="text-sm leading-6 text-muted-foreground">Drawings aren&apos;t saved automatically. Save a PNG before leaving this page.</p>}
     </section>
   )
 }

@@ -8,7 +8,7 @@ const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
   title: 'Sketchbook — p5.js playground',
-  description: 'A creative coding starter with p5.js, Next.js, and TypeScript. Explore an interactive sketch and make it your own.',
+  description: 'Create with shapes or code. Start on a blank interactive canvas, or write p5.js sketches in a live code editor.',
   generator: 'v0.app',
   icons: {
     icon: [

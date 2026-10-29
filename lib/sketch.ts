@@ -73,6 +73,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         controls.reset = false
       }
       p.background(paper)
+      if (controls.drawingEnabled === false) {
       p.push()
       p.translate(p.width / 2, p.height / 2)
       const inside = p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height
@@ -95,6 +96,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         p.endShape(p.CLOSE)
       }
       p.pop()
+      }
       if (controls.drawingEnabled !== false) {
       p.push()
       p.stroke(foreground)
