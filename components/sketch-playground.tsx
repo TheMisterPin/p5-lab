@@ -14,10 +14,10 @@ const toolInstructions: Record<ShapeTool, string> = {
   ellipse: 'Click the center, then a corner of its bounding box to set the x/y radii.',
 }
 
-export function SketchPlayground() {
+export function SketchPlayground({ drawingEnabled = true }: { drawingEnabled?: boolean }) {
   const host = useRef<HTMLDivElement>(null)
   const instance = useRef<p5 | null>(null)
-  const controls = useRef<SketchControls>({ paused: false, reset: false, tool: 'pointer' })
+  const controls = useRef<SketchControls>({ paused: false, reset: false, tool: 'pointer', drawingEnabled })
   const [tool, setTool] = useState<ShapeTool>('pointer')
   const [progress, setProgress] = useState({ count: 0, completed: false })
   const [paused, setPaused] = useState(false)
@@ -78,7 +78,7 @@ export function SketchPlayground() {
             {error ? 'Load failed' : !ready ? 'Loading' : paused ? 'Paused' : 'Running'}
           </div>
         </div>
-        <div className="flex flex-col gap-3 border-b p-4">
+        {drawingEnabled && <div className="flex flex-col gap-3 border-b p-4">
           <ToggleGroup aria-label="Shape tool" variant="outline" value={[tool]} disabled={!ready} onValueChange={(values) => {
             const next = values[0] as ShapeTool | undefined
             if (!next) return
@@ -94,7 +94,7 @@ export function SketchPlayground() {
           </ToggleGroup>
           <p className="text-sm leading-6 text-muted-foreground">{toolInstructions[tool]}</p>
           {tool !== 'pointer' && <p role="status" className="font-mono text-sm">{progress.completed ? 'Shape logged to console. Click to start another.' : `${progress.count} / ${tool === 'triangle' ? 3 : 2} points captured`}</p>}
-        </div>
+        </div>}
         <div className="relative aspect-[5/4] w-full">
           <div ref={host} className="sketch-canvas size-full" />
           {!ready && <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground" role="status">{error ? 'Unable to load p5.js. Please refresh to retry.' : 'Preparing your canvas…'}</div>}
@@ -108,7 +108,7 @@ export function SketchPlayground() {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p>Canvas coordinates: 800 × 640. Reset clears shapes.</p>
+        <p>{drawingEnabled ? 'Canvas coordinates: 800 × 640. Reset clears shapes.' : 'Move your cursor. See what happens.'}</p>
         <span className="font-mono">2D canvas · p5.js</span>
       </div>
       <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary p-5 text-secondary-foreground sm:mt-7 sm:p-6">

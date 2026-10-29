@@ -10,6 +10,7 @@ export type SketchControls = {
   paused: boolean
   reset: boolean
   tool: ShapeTool
+  drawingEnabled?: boolean
   onCaptureProgress?: (count: number, completed: boolean) => void
 }
 
@@ -44,6 +45,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
       foreground = styles.getPropertyValue('--foreground').trim() || foreground
       const canvas = p.createCanvas(800, 640)
       canvas.mouseClicked(() => {
+        if (controls.drawingEnabled === false) return
         syncTool()
         const point = logMouseCoordinates(p)
         if (!point || activeTool === 'pointer') return
@@ -54,7 +56,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         if (controls.paused) void p.redraw()
       })
       canvas.attribute('role', 'img')
-      canvas.attribute('aria-label', 'Interactive sketch canvas. Select a shape tool, then click to register its coordinates. Mouse coordinates appear at the top left.')
+      canvas.attribute('aria-label', controls.drawingEnabled === false ? 'Animated pink and blue ribbons. Move your pointer to bend the pattern.' : 'Interactive sketch canvas. Select a shape tool, then click to register its coordinates. Mouse coordinates appear at the top left.')
       p.pixelDensity(Math.min(window.devicePixelRatio || 1, 2))
       p.frameRate(30)
       p.noFill()
@@ -93,6 +95,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         p.endShape(p.CLOSE)
       }
       p.pop()
+      if (controls.drawingEnabled !== false) {
       p.push()
       p.stroke(foreground)
       p.strokeWeight(2)
@@ -115,6 +118,7 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
       }
       p.pop()
       showMouseCoordinates(p, foreground, paper)
+      }
       if (!controls.paused) time += Math.min(p.deltaTime, 50) * 0.00035
       else p.noLoop()
     }
