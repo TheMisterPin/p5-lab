@@ -1,8 +1,16 @@
 import type p5 from 'p5'
+import { logMouseCoordinates, showMouseCoordinates } from './utility/coordinate/mouse'
+import { createTriangleCapture, drawTriangle, type TriangleShape } from './shapes/triangle'
+import { createRectangleCapture, drawRectangle, type RectangleShape } from './shapes/rectangle'
+import { createEllipseCapture, drawEllipse, type EllipseShape } from './shapes/ellipse'
+import { applyGradientFill, createLinearGradient } from './styles/gradients'
 
+export type ShapeTool = 'pointer' | 'triangle' | 'rectangle' | 'ellipse'
 export type SketchControls = {
   paused: boolean
   reset: boolean
+  tool: ShapeTool
+  onCaptureProgress?: (count: number, completed: boolean) => void
 }
 
 export function createSketch(controls: SketchControls, onReady: () => void) {
@@ -11,15 +19,42 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
     let paper = '#fafafa'
     let pink = '#d52368'
     let blue = '#365edb'
+    let foreground = '#252630'
+    let activeTool = controls.tool
+    const captures = {
+      triangle: createTriangleCapture(),
+      rectangle: createRectangleCapture(p),
+      ellipse: createEllipseCapture(p),
+    }
+    let shapes: (TriangleShape | RectangleShape | EllipseShape)[] = []
+
+    function syncTool() {
+      if (activeTool === controls.tool) return
+      Object.values(captures).forEach(capture => capture.reset())
+      activeTool = controls.tool
+    }
+
+    p.mouseMoved = () => { if (controls.paused) void p.redraw() }
 
     p.setup = () => {
       const styles = getComputedStyle(document.documentElement)
       paper = styles.getPropertyValue('--card').trim() || paper
       pink = styles.getPropertyValue('--primary').trim() || pink
       blue = styles.getPropertyValue('--ink-blue').trim() || blue
+      foreground = styles.getPropertyValue('--foreground').trim() || foreground
       const canvas = p.createCanvas(800, 640)
+      canvas.mouseClicked(() => {
+        syncTool()
+        const point = logMouseCoordinates(p)
+        if (!point || activeTool === 'pointer') return
+        const capture = captures[activeTool]
+        const shape = capture.addPoint(point)
+        if (shape) shapes.push(shape)
+        controls.onCaptureProgress?.(capture.points.length, !!shape)
+        if (controls.paused) void p.redraw()
+      })
       canvas.attribute('role', 'img')
-      canvas.attribute('aria-label', 'Animated pink and blue ribbon loops. Move your pointer over the canvas to bend the pattern.')
+      canvas.attribute('aria-label', 'Interactive sketch canvas. Select a shape tool, then click to register its coordinates. Mouse coordinates appear at the top left.')
       p.pixelDensity(Math.min(window.devicePixelRatio || 1, 2))
       p.frameRate(30)
       p.noFill()
@@ -27,8 +62,12 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
     }
 
     p.draw = () => {
+      syncTool()
       if (controls.reset) {
         time = 0
+        shapes = []
+        Object.values(captures).forEach(capture => capture.reset())
+        controls.onCaptureProgress?.(0, false)
         controls.reset = false
       }
       p.background(paper)
@@ -54,6 +93,28 @@ export function createSketch(controls: SketchControls, onReady: () => void) {
         p.endShape(p.CLOSE)
       }
       p.pop()
+      p.push()
+      p.stroke(foreground)
+      p.strokeWeight(2)
+      const startColor = p.color(blue)
+      const endColor = p.color(pink)
+      startColor.setAlpha(55)
+      endColor.setAlpha(55)
+      applyGradientFill(p, createLinearGradient(p, p.createVector(0, 0), p.createVector(p.width, p.height), [
+        { offset: 0, color: startColor }, { offset: 1, color: endColor },
+      ]))
+      for (const shape of shapes) {
+        if (shape.type === 'triangle') drawTriangle(p, shape)
+        else if (shape.type === 'rectangle') drawRectangle(p, shape)
+        else drawEllipse(p, shape)
+      }
+      if (activeTool !== 'pointer') {
+        p.fill(pink)
+        p.noStroke()
+        for (const point of captures[activeTool].points) p.circle(point.x, point.y, 10)
+      }
+      p.pop()
+      showMouseCoordinates(p, foreground, paper)
       if (!controls.paused) time += Math.min(p.deltaTime, 50) * 0.00035
       else p.noLoop()
     }

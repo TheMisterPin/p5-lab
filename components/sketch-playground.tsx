@@ -4,12 +4,22 @@ import { useEffect, useRef, useState } from 'react'
 import type p5 from 'p5'
 import { ArrowUpRight, Code2, Download, Pause, Play, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createSketch, type SketchControls } from '@/lib/sketch'
+import { createSketch, type SketchControls, type ShapeTool } from '@/lib/sketch'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+
+const toolInstructions: Record<ShapeTool, string> = {
+  pointer: 'Move to see coordinates. Click to log a p5.Vector.',
+  triangle: 'Click three vertices to create a triangle.',
+  rectangle: 'Click the top-left, then the bottom-right corner.',
+  ellipse: 'Click the center, then a corner of its bounding box to set the x/y radii.',
+}
 
 export function SketchPlayground() {
   const host = useRef<HTMLDivElement>(null)
   const instance = useRef<p5 | null>(null)
-  const controls = useRef<SketchControls>({ paused: false, reset: false })
+  const controls = useRef<SketchControls>({ paused: false, reset: false, tool: 'pointer' })
+  const [tool, setTool] = useState<ShapeTool>('pointer')
+  const [progress, setProgress] = useState({ count: 0, completed: false })
   const [paused, setPaused] = useState(false)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
@@ -20,6 +30,9 @@ export function SketchPlayground() {
     let sketch: p5 | undefined
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     controls.current.paused = reducedMotion
+    controls.current.onCaptureProgress = (count, completed) => {
+      if (!disposed) setProgress({ count, completed })
+    }
     setPaused(reducedMotion)
 
     async function mount() {
@@ -65,6 +78,23 @@ export function SketchPlayground() {
             {error ? 'Load failed' : !ready ? 'Loading' : paused ? 'Paused' : 'Running'}
           </div>
         </div>
+        <div className="flex flex-col gap-3 border-b p-4">
+          <ToggleGroup aria-label="Shape tool" variant="outline" value={[tool]} disabled={!ready} onValueChange={(values) => {
+            const next = values[0] as ShapeTool | undefined
+            if (!next) return
+            controls.current.tool = next
+            setTool(next)
+            setProgress({ count: 0, completed: false })
+            if (controls.current.paused) void instance.current?.redraw()
+          }}>
+            <ToggleGroupItem value="pointer">Pointer</ToggleGroupItem>
+            <ToggleGroupItem value="triangle">Triangle</ToggleGroupItem>
+            <ToggleGroupItem value="rectangle">Rectangle</ToggleGroupItem>
+            <ToggleGroupItem value="ellipse">Ellipse</ToggleGroupItem>
+          </ToggleGroup>
+          <p className="text-sm leading-6 text-muted-foreground">{toolInstructions[tool]}</p>
+          {tool !== 'pointer' && <p role="status" className="font-mono text-sm">{progress.completed ? 'Shape logged to console. Click to start another.' : `${progress.count} / ${tool === 'triangle' ? 3 : 2} points captured`}</p>}
+        </div>
         <div className="relative aspect-[5/4] w-full">
           <div ref={host} className="sketch-canvas size-full" />
           {!ready && <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground" role="status">{error ? 'Unable to load p5.js. Please refresh to retry.' : 'Preparing your canvas…'}</div>}
@@ -78,7 +108,7 @@ export function SketchPlayground() {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p>Move your cursor. See what happens.</p>
+        <p>Canvas coordinates: 800 × 640. Reset clears shapes.</p>
         <span className="font-mono">2D canvas · p5.js</span>
       </div>
       <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary p-5 text-secondary-foreground sm:mt-7 sm:p-6">
@@ -96,6 +126,7 @@ export function SketchPlayground() {
         {showSource && <div id="starter-guide" className="flex flex-col gap-3 border-t pt-4 text-sm leading-6">
           <p>Edit <code className="font-mono text-primary">lib/sketch.ts</code> to change the artwork. The sketch uses p5 instance mode, with <code className="font-mono">setup()</code> for initialization and <code className="font-mono">draw()</code> for each frame.</p>
           <p><code className="font-mono">components/sketch-playground.tsx</code> handles browser-only loading, controls, and cleanup. No global variables or server-side canvas rendering.</p>
+          <p>Coordinate helpers live in <code className="font-mono">lib/utility/coordinate/mouse.ts</code>, gradient helpers in <code className="font-mono">lib/styles/gradients.ts</code>, and click collectors in <code className="font-mono">lib/shapes/</code>. Each completed shape is logged as a typed object containing real p5.Vector coordinates. Ellipses use a radius vector: x and y are the horizontal and vertical radii.</p>
         </div>}
       </div>
     </section>
