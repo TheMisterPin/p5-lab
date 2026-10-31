@@ -10,7 +10,7 @@ export function WorkspaceHeader({ active }: { active: 'home' | 'interactove' | '
           <span className="font-semibold tracking-tight">sketchbook</span>
         </Link>
         <nav aria-label="Workspace" className="flex items-center gap-1">
-          {([['interactove', 'Interactive'], ['ide', 'Code editor']] as const).map(([route, label]) => (
+          {([['interactove', 'Visual editor'], ['ide', 'Code editor']] as const).map(([route, label]) => (
             <Link key={route} href={`/${route}`} aria-current={active === route ? 'page' : undefined} className={cn('rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring', active === route ? 'bg-secondary text-foreground' : 'text-muted-foreground')}>
               {label}
             </Link>
