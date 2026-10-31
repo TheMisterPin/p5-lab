@@ -53,16 +53,25 @@ export function SketchPicker({
 
   useEffect(() => {
     if (!open) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onOpenChange(false)
+      if (event.key === 'Tab') {
+        const buttons = panelRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+        if (!buttons?.length) return
+        const first = buttons[0], last = buttons[buttons.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     panelRef.current?.querySelector<HTMLElement>('button[role="option"]')?.focus()
     return () => {
       document.body.style.overflow = previous
       window.removeEventListener('keydown', onKeyDown)
+      previousFocus?.focus()
     }
   }, [open, onOpenChange])
 

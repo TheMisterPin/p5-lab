@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
+    "test": "node scripts/test.mjs",
     "bundle:sketch": "esbuild lib/ide/runtime.ts --bundle --minify --format=iife --platform=browser --outfile=public/runtime/sketch.js",
     "predev": "pnpm bundle:sketch",
     "prebuild": "pnpm bundle:sketch",

@@ -1,3 +1,5 @@
+import type { Scene } from '../editor/scene'
+
 export type Point2D = { x: number; y: number }
 
 export type SerializedShape =
@@ -12,7 +14,7 @@ export type SketchMeta = {
 }
 
 export type CodeSketch = SketchMeta & { kind: 'code'; code: string }
-export type InteractiveSketch = SketchMeta & { kind: 'interactive'; shapes: SerializedShape[] }
+export type InteractiveSketch = SketchMeta & { kind: 'interactive'; scene: Scene }
 export type StoredSketch = CodeSketch | InteractiveSketch
 
 export type SketchStore<T extends StoredSketch> = {

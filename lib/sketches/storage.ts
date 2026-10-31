@@ -1,5 +1,6 @@
 import { ribbonExample } from '@/lib/ide/examples'
 import { isSerializedShape } from './serialize'
+import { emptyScene, isScene, migrateShapes } from '../editor/scene'
 import type { CodeSketch, InteractiveSketch, SketchStore, StoredSketch } from './types'
 
 export const CODE_STORAGE_KEY = 'sketchbook.ide.v1'
@@ -26,12 +27,12 @@ export function createCodeSketch(partial?: Partial<Pick<CodeSketch, 'name' | 'co
   }
 }
 
-export function createInteractiveSketch(partial?: Partial<Pick<InteractiveSketch, 'name' | 'shapes'>>): InteractiveSketch {
+export function createInteractiveSketch(partial?: Partial<Pick<InteractiveSketch, 'name' | 'scene'>>): InteractiveSketch {
   return {
     kind: 'interactive',
     id: createId(),
     name: partial?.name?.trim() || 'Untitled canvas',
-    shapes: partial?.shapes ?? [],
+    scene: partial?.scene ?? emptyScene(),
     updatedAt: now(),
   }
 }
@@ -58,11 +59,12 @@ function readRaw(key: string): unknown {
 }
 
 function writeRaw(key: string, value: unknown) {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') return false
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
+    return true
   } catch {
-    // Quota or private mode — ignore; the session still works in memory.
+    return false // The session still works in memory; callers can report failure.
   }
 }
 
@@ -83,13 +85,15 @@ function parseCodeSketch(value: unknown): CodeSketch | null {
 
 function parseInteractiveSketch(value: unknown): InteractiveSketch | null {
   if (!isMeta(value)) return null
-  const item = value as { id: string; name: string; updatedAt: number; shapes?: unknown }
-  if (!Array.isArray(item.shapes) || !item.shapes.every(isSerializedShape)) return null
+  const item = value as { id: string; name: string; updatedAt: number; shapes?: unknown; scene?: unknown }
+  const scene = isScene(item.scene) ? item.scene
+    : Array.isArray(item.shapes) && item.shapes.every(isSerializedShape) ? migrateShapes(item.shapes, item.id) : null
+  if (!scene) return null
   return {
     kind: 'interactive',
     id: item.id,
     name: item.name || 'Untitled canvas',
-    shapes: item.shapes,
+    scene,
     updatedAt: item.updatedAt,
   }
 }
@@ -119,11 +123,11 @@ export function loadInteractiveStore(): SketchStore<InteractiveSketch> {
 }
 
 export function saveCodeStore(store: SketchStore<CodeSketch>) {
-  writeRaw(CODE_STORAGE_KEY, store)
+  return writeRaw(CODE_STORAGE_KEY, store)
 }
 
 export function saveInteractiveStore(store: SketchStore<InteractiveSketch>) {
-  writeRaw(INTERACTIVE_STORAGE_KEY, store)
+  return writeRaw(INTERACTIVE_STORAGE_KEY, store)
 }
 
 export function getActiveSketch<T extends StoredSketch>(store: SketchStore<T>): T {
@@ -172,15 +176,15 @@ export function updateCodeContent(store: SketchStore<CodeSketch>, id: string, co
   }
 }
 
-export function updateInteractiveShapes(
+export function updateInteractiveScene(
   store: SketchStore<InteractiveSketch>,
   id: string,
-  shapes: InteractiveSketch['shapes'],
+  scene: InteractiveSketch['scene'],
 ): SketchStore<InteractiveSketch> {
   return {
     ...store,
     sketches: store.sketches.map(sketch => (
-      sketch.id === id ? { ...sketch, shapes, updatedAt: now() } : sketch
+      sketch.id === id ? { ...sketch, scene, updatedAt: now() } : sketch
     )),
   }
 }
