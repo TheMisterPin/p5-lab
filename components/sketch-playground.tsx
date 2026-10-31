@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type p5 from 'p5'
-import { ArrowUpRight, Code2, Download, Pause, Play, RotateCcw } from 'lucide-react'
+import { Code2, Download, Pause, Play, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { VisualEditor } from '@/components/editor/visual-editor'
 import { createSketch, type SketchControls } from '@/lib/sketch'
@@ -18,7 +18,6 @@ function RibbonPlayground() {
   const [paused, setPaused] = useState(false)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
-  const [showSource, setShowSource] = useState(false)
 
   useEffect(() => {
     let disposed = false
@@ -56,7 +55,7 @@ function RibbonPlayground() {
   }
 
   return (
-    <section aria-label="Sketch playground" className="flex flex-col gap-5">
+    <section aria-label="Sketch playground" className="flex min-h-0 flex-col">
       <div className="overflow-hidden rounded-xl border bg-card text-card-foreground">
         <div className="flex items-center justify-between border-b px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2 text-sm font-medium"><Code2 className="size-4 text-muted-foreground" /> sketch.ts</div>
@@ -67,7 +66,7 @@ function RibbonPlayground() {
         </div>
         <div className="relative aspect-[5/4] w-full">
           <div ref={host} className="sketch-canvas size-full" />
-          {!ready && <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground" role="status">{error ? 'Unable to load p5.js. Please refresh to retry.' : 'Preparing your canvas…'}</div>}
+          {!ready && <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground" role="status">{error ? 'Canvas load failed.' : 'Loading…'}</div>}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-y-3 border-t px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
@@ -76,28 +75,6 @@ function RibbonPlayground() {
           </div>
           <Button variant="outline" size="lg" disabled={!ready} onClick={() => instance.current?.saveCanvas('ribbon-study', 'png')}><Download data-icon="inline-start" />Save PNG</Button>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p>Move your cursor. See what happens.</p>
-        <span className="font-mono">2D canvas · p5.js</span>
-      </div>
-      <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary p-5 text-secondary-foreground sm:mt-7 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="font-medium">A little code. A lot of possibility.</h2>
-            <p className="text-sm leading-6 text-muted-foreground">Your canvas is ready. Make this sketch your own.</p>
-          </div>
-          <Code2 className="size-5 shrink-0 text-muted-foreground" />
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <Button variant="outline" onClick={() => setShowSource(!showSource)} aria-expanded={showSource} aria-controls="starter-guide">{showSource ? 'Hide starter guide' : 'Where to start'}</Button>
-          <a href="https://p5js.org/reference/" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sm underline-offset-4 hover:underline">p5.js reference<ArrowUpRight className="size-4" /><span className="sr-only"> (opens in a new tab)</span></a>
-        </div>
-        {showSource && <div id="starter-guide" className="flex flex-col gap-3 border-t pt-4 text-sm leading-6">
-          <p>Edit <code className="font-mono text-primary">lib/sketch.ts</code> to change the artwork. The sketch uses p5 instance mode, with <code className="font-mono">setup()</code> for initialization and <code className="font-mono">draw()</code> for each frame.</p>
-          <p><code className="font-mono">components/sketch-playground.tsx</code> handles browser-only loading, controls, and cleanup. No global variables or server-side canvas rendering.</p>
-          <p>Coordinate helpers live in <code className="font-mono">lib/utility/coordinate/mouse.ts</code>, gradient helpers in <code className="font-mono">lib/styles/gradients.ts</code>, and click collectors in <code className="font-mono">lib/shapes/</code>. Each completed shape is logged as a typed object containing real p5.Vector coordinates. Ellipses use a radius vector: x and y are the horizontal and vertical radii.</p>
-        </div>}
       </div>
     </section>
   )

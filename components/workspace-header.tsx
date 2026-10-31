@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils'
 
 export function WorkspaceHeader({ active }: { active: 'home' | 'interactove' | 'ide' }) {
   return (
-    <header className="border-b bg-background text-foreground">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
+    <header className="shrink-0 border-b bg-background text-foreground">
+      <div className="mx-auto flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2">
         <Link href="/" className="flex items-center gap-3" aria-label="Sketchbook home">
           <span className="font-mono text-2xl font-bold tracking-tighter text-primary">p5*</span>
           <span className="font-semibold tracking-tight">sketchbook</span>

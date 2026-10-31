@@ -15,7 +15,9 @@ export function SceneCanvas({ scene, onCanvas }: { scene: Scene; onCanvas: (p: p
 
   useEffect(() => {
     latest.current = scene
-    void instance.current?.redraw()
+    const p = instance.current
+    if (p && (p.width !== scene.width || p.height !== scene.height)) p.resizeCanvas(scene.width, scene.height, true)
+    void p?.redraw()
   }, [scene])
   useEffect(() => { callback.current = onCanvas }, [onCanvas])
   useEffect(() => {
@@ -29,7 +31,7 @@ export function SceneCanvas({ scene, onCanvas }: { scene: Scene; onCanvas: (p: p
           p.setup = () => {
             const canvas = p.createCanvas(latest.current.width, latest.current.height)
             canvas.attribute('role', 'img')
-            canvas.attribute('aria-label', 'Your visual p5.js sketch. Use the canvas controls or object list to edit shapes.')
+            canvas.attribute('aria-label', 'Sketch artwork')
             p.pixelDensity(Math.min(window.devicePixelRatio || 1, 2))
             p.noLoop()
             setReady(true)
@@ -46,6 +48,6 @@ export function SceneCanvas({ scene, onCanvas }: { scene: Scene; onCanvas: (p: p
 
   return <>
     <div ref={host} className="sketch-canvas pointer-events-none absolute inset-0" />
-    {!ready && <p role="status" className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">{error ? 'Unable to load p5.js. Refresh to retry.' : 'Preparing your canvas…'}</p>}
+    {!ready && <p role="status" className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">{error ? 'Canvas load failed.' : 'Loading…'}</p>}
   </>
 }
