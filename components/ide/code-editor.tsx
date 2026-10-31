@@ -27,5 +27,5 @@ const extensions = [
 ]
 
 export default function CodeEditor({ value, onChange }: { value: string; onChange: (code: string) => void }) {
-  return <CodeMirror value={value} onChange={onChange} height="520px" extensions={extensions} theme="none" basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true }} />
+  return <CodeMirror value={value} onChange={onChange} height="100%" className="min-h-0 flex-1 overflow-hidden" extensions={extensions} theme="none" basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true }} />
 }

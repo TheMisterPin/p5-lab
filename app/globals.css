@@ -196,3 +196,16 @@ kbd {
     @apply bg-background text-foreground;
   }
 }
+
+.editor-field { display: flex; min-width: 0; flex-direction: column; gap: 0.25rem; font-size: 0.6875rem; color: var(--muted-foreground); }
+.editor-inspector { flex: 0 1 65%; }
+.editor-stage { min-height: 12rem; }
+.ide-panes > section { min-height: 0; }
+@media (max-width: 1023px) {
+  .editor-shell { height: auto; min-height: 100dvh; overflow: visible; }
+  .editor-stage { height: auto; aspect-ratio: var(--scene-aspect); max-height: 65dvh; min-height: 14rem; flex: none; }
+  .editor-sidebar { min-height: 24rem; max-height: 70dvh; }
+  .editor-inspector { max-height: 45dvh; }
+  .ide-panes { flex: none; }
+  .ide-panes > section { height: 55dvh; }
+}

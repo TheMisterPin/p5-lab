@@ -1,6 +1,6 @@
 import { ribbonExample } from '@/lib/ide/examples'
-import { isSerializedShape } from './serialize'
-import { emptyScene, isScene, migrateShapes } from '../editor/scene'
+import { emptyScene } from '../editor/scene'
+import { parseSavedScene } from '../editor/project'
 import type { CodeSketch, InteractiveSketch, SketchStore, StoredSketch } from './types'
 
 export const CODE_STORAGE_KEY = 'sketchbook.ide.v1'
@@ -86,8 +86,7 @@ function parseCodeSketch(value: unknown): CodeSketch | null {
 function parseInteractiveSketch(value: unknown): InteractiveSketch | null {
   if (!isMeta(value)) return null
   const item = value as { id: string; name: string; updatedAt: number; shapes?: unknown; scene?: unknown }
-  const scene = isScene(item.scene) ? item.scene
-    : Array.isArray(item.shapes) && item.shapes.every(isSerializedShape) ? migrateShapes(item.shapes, item.id) : null
+  const scene = parseSavedScene(item.scene, item.shapes, item.id)
   if (!scene) return null
   return {
     kind: 'interactive',

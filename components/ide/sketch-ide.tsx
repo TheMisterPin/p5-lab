@@ -199,26 +199,21 @@ export function SketchIDE() {
   }
 
   if (!hydrated || !store || !active) {
-    return <p className="p-6 text-sm text-muted-foreground">Loading sketches…</p>
+    return <p className="p-6 text-sm text-muted-foreground">Loading…</p>
   }
 
   return (
-    <section className="flex flex-col gap-6" onKeyDown={event => {
+    <section className="flex min-h-0 flex-1 flex-col gap-0" onKeyDown={event => {
       if (event.nativeEvent.isComposing || event.keyCode === 229) return
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
         event.preventDefault()
         execute()
       }
     }}>
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div className="flex flex-col gap-2">
-          <p className="font-mono text-sm text-primary">CODE → CANVAS</p>
-          <h1 className="text-balance text-3xl font-medium tracking-tight sm:text-4xl">Make something unexpected.</h1>
-          <p className="text-pretty text-sm leading-6 text-muted-foreground">Write a little JavaScript. Run it. See where it takes you.</p>
-        </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <ChangeSketchButton onClick={() => setPickerOpen(true)} />
-          <Button onClick={() => execute()}><Play data-icon="inline-start" />Run sketch</Button>
+          <Button title="Run (Ctrl/⌘ Enter)" onClick={() => execute()}><Play data-icon="inline-start" />Run sketch</Button>
           <Button variant="outline" onClick={() => { setRun(null); setStatus('Stopped') }} disabled={!run}><Square data-icon="inline-start" />Stop</Button>
           <Button variant="ghost" onClick={download} aria-label="Download sketch JavaScript"><Download /></Button>
         </div>
@@ -235,9 +230,9 @@ export function SketchIDE() {
         onDelete={handleDelete}
       />
 
-      <div className="grid min-w-0 overflow-hidden rounded-xl border lg:grid-cols-2">
-        <section aria-label="Code editor" className="min-w-0 border-b lg:border-r lg:border-b-0">
-          <div className="flex min-h-12 items-center justify-between border-b bg-card px-4 text-card-foreground">
+      <div className="ide-panes grid min-h-0 min-w-0 flex-1 overflow-hidden lg:grid-cols-2">
+        <section aria-label="Code editor" className="flex min-h-0 min-w-0 flex-col overflow-hidden border-b lg:border-r lg:border-b-0">
+          <div className="flex min-h-9 items-center justify-between border-b bg-card px-4 text-card-foreground">
             <span className="flex min-w-0 items-center gap-2 font-mono text-sm">
               <Code2 className="size-4 shrink-0" />
               <span className="truncate">{active.name}</span>
@@ -245,52 +240,38 @@ export function SketchIDE() {
             <span className="shrink-0 text-sm text-muted-foreground">{dirty ? 'Unrun changes' : 'Saved locally'}</span>
           </div>
           <CodeEditor value={code} onChange={handleCodeChange} />
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex shrink-0 items-center justify-between border-t px-3 py-1 text-xs text-muted-foreground">
             <span className="font-mono">{code.split('\n').length} lines</span>
-            <span>Ctrl / ⌘ + Enter to run</span>
+
           </div>
         </section>
-        <section aria-label="Live preview" className="flex min-w-0 flex-col bg-card text-card-foreground">
-          <div className="flex min-h-12 items-center justify-between border-b px-4">
+        <section aria-label="Live preview" className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-card text-card-foreground">
+          <div className="flex min-h-9 items-center justify-between border-b px-4">
             <h2 className="text-sm font-medium">Preview</h2>
             <span role="status" className="font-mono text-sm text-muted-foreground">{status}</span>
           </div>
-          <div className="flex min-h-80 flex-1 items-center justify-center">
-            {run ? <iframe key={run.id} ref={frame} title="Live p5.js sketch" src="/sketch-runner.html" sandbox="allow-scripts" className="aspect-[5/4] w-full border-0" onLoad={() => {
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto">
+            {run ? <iframe key={run.id} ref={frame} title="Live p5.js sketch" src="/sketch-runner.html" sandbox="allow-scripts" className="h-full min-h-48 w-full border-0" onLoad={() => {
               frame.current?.contentWindow?.postMessage({ channel: 'sketchbook', type: 'run', code: run.code }, '*')
-            }} /> : <p className="p-6 text-sm text-muted-foreground">Preview stopped. Run your sketch to start again.</p>}
+            }} /> : <p className="p-6 text-sm text-muted-foreground">Stopped</p>}
           </div>
-          <div className="border-t px-4 py-3 text-sm text-muted-foreground">Isolated preview · p5.js instance mode</div>
         </section>
       </div>
 
-      <section aria-label="Sketch console" className="overflow-hidden rounded-xl border">
+      <section aria-label="Sketch console" className="shrink-0 overflow-hidden border-t">
         <div className="flex items-center justify-between border-b bg-card px-4 py-2 text-card-foreground">
           <h2 className="flex items-center gap-2 text-sm font-medium"><Terminal className="size-4" />Console <span className="font-mono text-muted-foreground">{logs.length}</span></h2>
           <Button variant="ghost" size="sm" onClick={() => setLogs([])}>Clear</Button>
         </div>
-        <div className="max-h-60 min-h-24 overflow-auto p-4 font-mono text-sm" role="log" aria-live="off">
-          {logs.length === 0 ? <p className="text-muted-foreground">Console output and errors will appear here.</p> : logs.map((entry, i) => <pre key={i} className={`whitespace-pre-wrap break-all leading-6 ${entry.level === 'error' ? 'text-primary' : 'text-foreground'}`}>{entry.level === 'error' ? 'Error: ' : ''}{entry.text}</pre>)}
+        <div className="max-h-28 min-h-6 overflow-auto px-3 py-1 font-mono text-xs" role="log" aria-live="off">
+          {logs.length === 0 ? null : logs.map((entry, i) => <pre key={i} className={`whitespace-pre-wrap break-all leading-6 ${entry.level === 'error' ? 'text-primary' : 'text-foreground'}`}>{entry.level === 'error' ? 'Error: ' : ''}{entry.text}</pre>)}
         </div>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground">Try a starting point:</span>
-          <Button variant="outline" size="sm" onClick={() => loadExample(ribbonExample)}><RotateCcw data-icon="inline-start" />Ribbon study</Button>
-          <Button variant="outline" size="sm" onClick={() => loadExample(triangleExample)}>Click-to-draw triangles</Button>
-        </div>
-        <p className="text-muted-foreground">Drafts autosave in this browser.</p>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-t px-3 py-1">
+        <Button variant="ghost" size="sm" onClick={() => loadExample(ribbonExample)}>Ribbon study</Button>
+        <Button variant="ghost" size="sm" onClick={() => loadExample(triangleExample)}>Triangles</Button>
       </div>
-      <details className="rounded-xl border p-5 text-sm leading-6">
-        <summary className="cursor-pointer font-medium">Your toolkit: p5.js + project utilities</summary>
-        <div className="mt-4 flex flex-col gap-3 text-muted-foreground">
-          <p>Use <code className="font-mono text-foreground">p.setup</code>, <code className="font-mono text-foreground">p.draw</code>, and all p5 methods on <code className="font-mono text-foreground">p</code>. Write JavaScript, not TypeScript or module imports.</p>
-          <p>Project utilities are available through <code className="font-mono text-foreground">helpers</code>: getMouseCoordinates, showMouseCoordinates, logMouseCoordinates, createLinearGradient, createRadialGradient, applyGradientFill, createTriangleCapture, createRectangleCapture, createEllipseCapture, and their draw functions.</p>
-          <p>Run starts a fresh preview; Stop removes it. Sketches run with no access to the editor&apos;s document or storage. Avoid infinite loops: an iframe isolates access, not CPU usage.</p>
-          <a className="text-primary underline underline-offset-4" href="https://p5js.org/reference/" target="_blank" rel="noreferrer">Open p5.js reference (new tab)</a>
-        </div>
-      </details>
     </section>
   )
 }

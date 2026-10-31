@@ -14,37 +14,48 @@ The Sketchbook logo returns to the landing page. Header links switch between edi
 
 ## Visual editor
 
-Choose **Triangle**, **Rectangle**, or **Ellipse**, then drag on the canvas to set its bounds. Dragged triangles start upright. Each completed shape is selected in Move mode. The original click-through placement also works:
+`/interactove` remains the visual-editor route. Desktop editing fills the viewport; the canvas fits the available stage and the inspector and object list scroll independently. Mobile uses a stacked workspace.
 
-- **Triangle:** place three vertices.
-- **Rectangle:** place two opposite corners.
-- **Ellipse:** place the center, then a corner of its bounding box to set horizontal and vertical radii.
+### Creation
 
-Select a shape by clicking it or choosing it in **Objects**. Frontmost shapes take precedence where shapes overlap. The contextual toolbar offers:
+| Tool | Shortcut | Creation |
+| --- | --- | --- |
+| Triangle | 1 | Drag an upright triangle, or click three vertices. |
+| Rectangle | 2 | Drag bounds, or click opposite corners. |
+| Ellipse | 3 | Drag bounds, or click center and radius extent. |
+| Circle | 4 | Drag constrained bounds, or click center and a point on its radius. |
+| Square | 5 | Drag or click constrained opposite corners. |
+| Quad | 6 | Click four vertices in authored order. |
+| Line | 7 | Drag endpoints or click two endpoints. |
+| Connected dots | 8 | Click vertices or drag the next segment endpoint. Enter, double-click, or Finish completes it; Escape cancels. |
 
-- **Move (W):** drag the shape freely, or drag the red X / blue Y handles along one axis.
-- **Rotate (E):** drag the ring around its center. Hold Shift to snap to 15° increments.
-- **Scale (R):** drag an edge or corner. The opposite edge/corner stays anchored; Shift on a corner preserves the aspect ratio.
+Connected dots requires two distinct points. Double-click does not add a duplicate final vertex. Holding and dragging places one endpoint on release, without freehand sampling. The Add centered control provides keyboard creation for fixed-size shapes.
 
-The inspector edits center X/Y, width, height, and clockwise rotation in degrees. **Add centered** creates a shape without pointer input. Numeric fields, the Objects list, and arrow-key nudges provide keyboard alternatives to dragging. Dimensions must be at least 1 pixel for new edits. Shapes may extend beyond the canvas; exports clip at its edges.
+### Selection, geometry, and objects
 
-**Undo/Redo** records each completed drag, numeric edit, creation, deletion, or **Clear canvas** as one operation. History retains the last 100 edits per canvas for the current visual-editor session, including when switching named canvases; it does not survive leaving the visual editor or reloading. Pending placement and drag previews are not autosaved. Escape or a canceled pointer gesture discards them.
+Use V to select, W to move, E to rotate, R to scale, and T for triangle/quad vertex editing. Shift snaps rotation to 15° or constrains scaling. Arrow keys nudge by one canvas pixel; Shift + arrows nudges by ten. Ctrl/Command + D duplicates; Delete removes an unlocked selection. Undo/redo uses Ctrl/Command + Z and Ctrl/Command + Shift + Z (or Ctrl + Y).
 
-| Shortcut | Action |
-| --- | --- |
-| V / W / E / R | Select / Move / Rotate / Scale |
-| 1 / 2 / 3 | Triangle / Rectangle / Ellipse |
-| Arrow keys / Shift + arrows | Move selection 1 / 10 pixels |
-| Delete or Backspace | Delete selection |
-| Ctrl/Command + Z | Undo |
-| Ctrl/Command + Shift + Z, Ctrl + Y | Redo |
-| Escape | Cancel pending action and clear selection |
+The inspector edits the name, center position, local dimensions, rotation, and Scale X/Y percentages. **100% refers to base geometry**, and dimensions are derived from base geometry and scale. Circle and Square always use uniform scale. The proportional lock is optional for other shapes. Scaling changes geometry without scaling stroke or dot sizes.
 
-Shortcuts apply within the visual workspace and do not intercept numeric-field typing. Changing tools cancels unfinished placement. **Save PNG** exports only the artwork, without selection outlines or handles.
+Vertex inputs use canvas coordinates. Editing triangle or quad vertices preserves scale percentages and rotation; bounds/pivot are recentered while untouched vertices stay fixed in canvas space. Degenerate polygons remain editable. A zero base extent has a disabled dimension field; vertex editing can expand it again.
 
-**Open in code editor** generates readable, standalone p5.js instance-mode JavaScript and opens it as a **new** code sketch. Every export creates a separate sketch; existing code sketches are preserved. This is a one-way copy: later code edits do not update the visual scene. **Download JS** exports the same code directly. If browser storage cannot save the new code sketch, navigation is canceled and Download JS remains available.
+Objects are listed front to back. Duplicate creates an independent ID and an unlocked copy offset by 16 pixels. Arrange controls change drawing order. Hidden objects are omitted from artwork exports but remain in projects. Locked objects are skipped by canvas selection and remain selectable through Objects; geometry and deletion are disabled while naming, appearance, visibility, ordering, and duplication remain available.
 
-The drawing uses an 800 × 640 coordinate space and scales to the available screen width. It redraws on interaction rather than running the ribbon animation. The landing animation retains Pause/Play, Reset, PNG export, and reduced-motion support.
+### Appearance and canvas
+
+New closed shapes use a solid light fill and dark stroke. Each object has fill/none, stroke/none, stroke weight, and opacity. Open objects use stroke settings only. Connected-dot diameter is the greater of 6 canvas pixels and 2.5 times stroke weight; disabling stroke hides both segments and dots. Opacity multiplies paint alpha.
+
+Canvas background and dimensions are editable. Resizing clips or reveals artwork without moving objects. Dimensions are whole pixels, up to 8192 per axis and 16,777,216 total pixels.
+
+Valid continuous edits preview immediately and commit as a single undo operation when the interaction ends. History retains the last 100 changes per canvas while the visual editor remains mounted, including canvas settings, appearance, ordering, names, and flags. It does not survive reload or leaving the editor. Escape/pointer cancellation discards unfinished gestures.
+
+### Projects and artwork exports
+
+- **Download Project** saves a versioned `.p5lab.json` file with the canvas, names, IDs, base geometry, transforms, appearance, order, visibility, and locks.
+- **Import Project** validates the complete file and opens it as a new named visual sketch; existing sketches are preserved. Supported projects use `format: "p5-lab-project"`, envelope version 1, and scene version 2. Imports are limited to 10 MB, 5000 objects, and 100,000 total vertices.
+- **Save PNG** includes only the artwork, without selection overlays.
+- **Download JS** produces standalone p5.js instance-mode JavaScript.
+- **Open in code editor** creates and activates a new code sketch, preserving previous code sketches. It is a one-way copy: code changes do not update the visual scene. Failed storage writes keep the visual editor open and leave download actions available.
 
 ## Code editor
 
@@ -77,7 +88,7 @@ Project utilities are exposed as `helpers`:
 
 ## Persistence and sandboxing
 
-Visual canvases and editor drafts autosave to browser `localStorage` on this device. Each mode keeps its own named sketches. Use **Change sketch** to switch, create, rename, or delete. Nothing is uploaded to a server. Existing saved canvases are migrated on load without changing their sketch IDs, names, drawing order, or geometry; arbitrary triangles retain their vertices. Stable object IDs and a versioned plain-data scene drive rendering, autosave, and code generation. The existing storage keys and store envelope remain compatible. The visual editor reports failed storage writes while retaining edits in memory.
+Visual canvases and editor drafts autosave to browser `localStorage`. Each mode keeps named sketches through Change sketch; nothing is uploaded. Both original shape arrays and version-1 visual scenes migrate to version 2 without changing geometry or drawing order. Migrated objects retain the original canvas-space gradient, colours, stroke, and fill alpha. This remains an explicit Legacy gradient fill until changed to solid or none; canvas resizing does not silently reposition its gradient endpoints. Existing storage keys and the store envelope are unchanged. Save errors are reported while editing continues in memory.
 
 Editor code runs in an `allow-scripts` iframe without `allow-same-origin`. It cannot access the parent document or its storage. This is access isolation, not CPU isolation: infinite loops can still make the tab unresponsive. Run only code you trust. Each Run replaces the iframe to discard the previous execution context.
 
@@ -107,7 +118,7 @@ pnpm start
 
 No database, authentication, or API keys are required for these modes.
 
-`pnpm test` bundles the focused TypeScript tests with the existing esbuild dependency and runs Node's test runner. It covers migration/storage roundtrips, hit-testing, transform geometry, history, and equivalence between generated code and visual drawing calls. Builds require Google Fonts access for the existing Geist fonts.
+`pnpm test` bundles the focused TypeScript tests with the existing esbuild dependency and runs Node's test runner. It covers migration/storage roundtrips, constraints, transformed vertex editing, project validation, object management, hit-testing, history, and equivalence between generated code and visual drawing calls. Builds require Google Fonts access for the existing Geist fonts.
 
 ## Project structure
 
