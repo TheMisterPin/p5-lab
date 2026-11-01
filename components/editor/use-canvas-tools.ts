@@ -4,6 +4,7 @@ import { useRef, useState, type PointerEvent as PE, type MouseEvent as ME } from
 import { editVertex, fromBounds, fromClicks, fromPoints, hitTest, objectId, replaceObject, resizeObject, unrotate, type Scene, type SceneObject, type ShapeKind } from '@/lib/editor/scene'
 import type { Point2D } from '@/lib/sketches/types'
 import type { SceneController } from './use-scene-history'
+import { canvasClientPoint, screenTolerance } from '@/lib/editor/viewport'
 export type Tool = 'select' | ShapeKind
 export type Mode = 'move' | 'rotate' | 'scale' | 'vertices'
 export const handles: Record<string, Point2D> = { nw: { x: -1, y: -1 }, n: { x: 0, y: -1 }, ne: { x: 1, y: -1 }, e: { x: 1, y: 0 }, se: { x: 1, y: 1 }, s: { x: 0, y: 1 }, sw: { x: -1, y: 1 }, w: { x: -1, y: 0 } }
@@ -32,7 +33,7 @@ export function useCanvasTools(state: SceneController, tool: Tool, mode: Mode, s
   }
   function pointFor(event: { clientX: number; clientY: number; currentTarget: SVGSVGElement }) {
     const b = event.currentTarget.getBoundingClientRect(), s = state.current()
-    return { x: (event.clientX - b.left) * s.width / b.width, y: (event.clientY - b.top) * s.height / b.height }
+    return canvasClientPoint({ x: event.clientX, y: event.clientY }, b, s)
   }
   function append(point: Point2D) {
     const current = pointsRef.current
@@ -50,7 +51,7 @@ export function useCanvasTools(state: SceneController, tool: Tool, mode: Mode, s
     const start = pointFor(event), base = state.current()
     const handle = (event.target as Element).closest('[data-handle]')?.getAttribute('data-handle') ?? 'body'
     const unit = base.width / event.currentTarget.getBoundingClientRect().width
-    const object = tool === 'select' ? handle !== 'body' ? base.objects.find(o => o.id === selectedId && !o.locked) : hitTest(base, start, 6 * unit) : undefined
+    const object = tool === 'select' ? handle !== 'body' ? base.objects.find(o => o.id === selectedId && !o.locked) : hitTest(base, start, screenTolerance(6, 1 / unit)) : undefined
     if (tool === 'select') { select(object?.id ?? null); if (!object) return }
     gesture.current = { pointerId: event.pointerId, start, client: { x: event.clientX, y: event.clientY }, base, object, handle, moved: false, id: objectId() }
     event.currentTarget.setPointerCapture(event.pointerId)

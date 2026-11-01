@@ -14,7 +14,7 @@ The Sketchbook logo returns to the landing page. Header links switch between edi
 
 ## Visual editor
 
-`/interactove` remains the visual-editor route. Desktop editing fills the viewport; the canvas fits the available stage and the inspector and object list scroll independently. Mobile uses a stacked workspace.
+`/interactove` remains the visual-editor route. Desktop editing uses a left hierarchy, centre canvas, and right inspector. The side panels scroll independently. Below 1100px, Hierarchy / Canvas / Inspector tabs switch panels without squeezing the artwork into narrow columns.
 
 ### Creation
 
@@ -33,13 +33,17 @@ Connected dots requires two distinct points. Double-click does not add a duplica
 
 ### Selection, geometry, and objects
 
-Use V to select, W to move, E to rotate, R to scale, and T for triangle/quad vertex editing. Shift snaps rotation to 15° or constrains scaling. Arrow keys nudge by one canvas pixel; Shift + arrows nudges by ten. Ctrl/Command + D duplicates; Delete removes an unlocked selection. Undo/redo uses Ctrl/Command + Z and Ctrl/Command + Shift + Z (or Ctrl + Y).
+Use V to select, W to move, E to rotate, R to scale, and T for triangle, quad, line, and connected-dot vertex editing. Shift snaps rotation to 15° or constrains scaling. Arrow keys nudge by one canvas pixel; Shift + arrows nudges by ten. Ctrl/Command + D duplicates; Delete removes an unlocked selection. Undo/redo uses Ctrl/Command + Z and Ctrl/Command + Shift + Z (or Ctrl + Y).
 
 The inspector edits the name, center position, local dimensions, rotation, and Scale X/Y percentages. **100% refers to base geometry**, and dimensions are derived from base geometry and scale. Circle and Square always use uniform scale. The proportional lock is optional for other shapes. Scaling changes geometry without scaling stroke or dot sizes.
 
-Vertex inputs use canvas coordinates. Editing triangle or quad vertices preserves scale percentages and rotation; bounds/pivot are recentered while untouched vertices stay fixed in canvas space. Degenerate polygons remain editable. A zero base extent has a disabled dimension field; vertex editing can expand it again.
+Vertex inputs use canvas coordinates. Editing polygon vertices, line endpoints, or connected-dot vertices preserves scale percentages and rotation; bounds/pivot are recentered while untouched vertices stay fixed in canvas space. Degenerate polygons remain editable. A zero base extent has a disabled dimension field; vertex editing can expand it again.
 
 Objects are listed front to back. Duplicate creates an independent ID and an unlocked copy offset by 16 pixels. Arrange controls change drawing order. Hidden objects are omitted from artwork exports but remain in projects. Locked objects are skipped by canvas selection and remain selectable through Objects; geometry and deletion are disabled while naming, appearance, visibility, ordering, and duplication remain available.
+
+### Canvas navigation
+
+The view starts fitted. Zoom in/out, Fit to view, and 100% operate on the viewport only. Wheel/trackpad zoom anchors the artwork point beneath the pointer. Hold Space and drag to pan, or toggle Pan for pointer/touch dragging. Handles and hit tolerances keep their screen-pixel sizes. Camera changes do not enter history, autosave, projects, PNGs, or generated code; Fit follows stage resizing until the view is manually zoomed or panned.
 
 ### Appearance and canvas
 
@@ -56,6 +60,10 @@ Valid continuous edits preview immediately and commit as a single undo operation
 - **Save PNG** includes only the artwork, without selection overlays.
 - **Download JS** produces standalone p5.js instance-mode JavaScript.
 - **Open in code editor** creates and activates a new code sketch, preserving previous code sketches. It is a one-way copy: code changes do not update the visual scene. Failed storage writes keep the visual editor open and leave download actions available.
+
+### JavaScript export precision
+
+Projects and editing retain full numeric precision. Generated JavaScript normally rounds numeric literals to at most three decimal places, removing trailing zeros and negative zero: an absolute change of at most 0.0005 per literal. Rotation is in radians, so position error also depends on distance to the object pivot (approximately `0.003 + radius × 0.0005` canvas pixels). If three-place rounding would lose more than 1% of a nonzero value, six significant digits are retained instead, protecting tiny geometry, stroke weights, and opacity. Export remains instance-mode JavaScript independent of editor helpers.
 
 ## Code editor
 

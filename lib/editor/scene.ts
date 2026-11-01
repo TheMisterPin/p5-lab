@@ -15,7 +15,7 @@ export type SceneObject = {
 export type Scene = { version: 2; width: number; height: number; background: string; objects: SceneObject[] }
 export const openShape = (type: ShapeKind) => type === 'line' || type === 'polyline'
 export const constrained = (type: ShapeKind) => type === 'circle' || type === 'square'
-export const editableVertices = (object: SceneObject) => object.type === 'triangle' || object.type === 'quad'
+export const editableVertices = (object: SceneObject) => object.geometry.kind === 'vertices'
 export function objectId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `object-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
@@ -83,6 +83,7 @@ export function worldVertices(object: SceneObject): Point2D[] {
 export function editVertex(object: SceneObject, index: number, target: Point2D): SceneObject {
   if (object.locked || object.geometry.kind !== 'vertices' || !Number.isFinite(target.x) || !Number.isFinite(target.y)) return object
   const points = object.geometry.points.map((p, i) => i === index ? localPoint(object, target) : p)
+  if (openShape(object.type) && points.every(p => Math.hypot((p.x - points[0].x) * object.scaleX, (p.y - points[0].y) * object.scaleY) < 1e-8)) return object
   const center = bounds(points), position = worldPoint(object, center)
   return { ...object, ...position, geometry: { kind: 'vertices', points: points.map(p => ({ x: p.x - center.x, y: p.y - center.y })) } }
 }

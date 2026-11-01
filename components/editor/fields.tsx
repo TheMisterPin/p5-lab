@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 
-export const inputClass = 'h-8 min-w-0 w-full rounded border bg-background px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive disabled:opacity-40'
+export const inputClass = 'editor-input h-8 min-w-0 w-full rounded border bg-background px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive disabled:opacity-40'
 export type Transaction = { end: () => void; cancel: () => void }
 export function NumberField({ label, value, min, max, disabled, validate, onChange, end, cancel }: {
   label: string; value: number; min?: number; max?: number; disabled?: boolean; validate?: (value: number) => boolean; onChange: (value: number) => void
@@ -32,5 +32,5 @@ export function ColorField({ label, value, onChange, end }: { label: string; val
     field?.addEventListener('change', done)
     return () => field?.removeEventListener('change', done)
   }, [])
-  return <label className="editor-field">{label}<input ref={input} aria-label={label} type="color" value={value} className="h-8 w-full cursor-pointer rounded border bg-background p-1" onChange={e => onChange(e.target.value)} onBlur={end} /></label>
+  return <label className="editor-field">{label}<input ref={input} aria-label={label} type="color" value={value} className="editor-input h-8 w-full cursor-pointer rounded border bg-background p-1" onChange={e => onChange(e.target.value)} onBlur={end} /></label>
 }

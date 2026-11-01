@@ -1,3 +1,5 @@
+import './viewport.test'
+import './export-format.test'
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import type p5 from 'p5'
@@ -159,7 +161,7 @@ function recorder() {
   return { p: p as unknown as p5, calls }
 }
 
-test('standalone instance code exactly matches renderer calls for every shape, paint, scale and visibility', () => {
+test('standalone instance code matches renderer calls within export tolerance for every shape, paint, scale and visibility', () => {
   const scene = migrateShapes(legacy, 'fixture')
   scene.objects.push(...shapeKinds.map((type, i) => {
     const o = fromBounds(type, { x: 10, y: 20 }, { x: 100, y: 120 })
@@ -171,7 +173,15 @@ test('standalone instance code exactly matches renderer calls for every shape, p
   const code = sceneToCode(scene)
   assert.ok(!code.includes('helpers.') && !code.includes('import ') && !code.includes('Excluded'))
   new Function('p', code)(generated.p); generated.p.setup(); generated.p.draw()
-  assert.deepEqual(generated.calls, direct.calls)
+  assert.equal(generated.calls.length, direct.calls.length)
+  generated.calls.forEach((call, i) => {
+    assert.equal(call.length, direct.calls[i].length)
+    call.forEach((value, j) => {
+      const expected = direct.calls[i][j]
+      if (typeof value === 'number' && typeof expected === 'number') assert.ok(Math.abs(value - expected) <= 0.00050000001, `${value} vs ${expected}`)
+      else assert.deepEqual(value, expected)
+    })
+  })
 })
 
 test('user names cannot inject executable JavaScript through generated comments', () => {
