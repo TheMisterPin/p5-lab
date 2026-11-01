@@ -58,7 +58,7 @@ test('line selection tolerance is constant in screen pixels at every zoom', () =
 })
 
 test('transformed line endpoints and every polyline vertex edit without moving their neighbors', () => {
-  for (const type of ['line', 'polyline'] as const) {
+  for (const type of ['line', 'polyline', 'freehand'] as const) {
     const points = type === 'line' ? [{ x: 20, y: 40 }, { x: 120, y: 80 }] : [{ x: 20, y: 40 }, { x: 70, y: 130 }, { x: 120, y: 80 }, { x: 160, y: 170 }]
     for (let i = 0; i < points.length; i++) {
       const object = { ...fromPoints(type, points), rotation: 0.72819, scaleX: 2.37, scaleY: 0.43, x: 231.42, y: -15.67 }
