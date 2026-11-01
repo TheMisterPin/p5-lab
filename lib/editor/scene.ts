@@ -59,8 +59,9 @@ export function fromClicks(type: ShapeKind, points: Point2D[]) {
   if (type === 'ellipse' || type === 'circle') {
     const [a, b] = points
     const r = Math.hypot(b.x - a.x, b.y - a.y)
-    return { ...common(type), x: a.x, y: a.y, geometry: { kind: 'box' as const,
-      width: Math.max(1, type === 'circle' ? r * 2 : Math.abs(b.x - a.x) * 2), height: Math.max(1, type === 'circle' ? r * 2 : Math.abs(b.y - a.y) * 2) } }
+    const width = Math.max(1, Math.round(type === 'circle' ? r * 2 : Math.abs(b.x - a.x) * 2))
+    const height = Math.max(1, Math.round(type === 'circle' ? r * 2 : Math.abs(b.y - a.y) * 2))
+    return { ...common(type), x: a.x, y: a.y, geometry: { kind: 'box' as const, width, height } }
   }
   return fromBounds(type, points[0], points[1])
 }
