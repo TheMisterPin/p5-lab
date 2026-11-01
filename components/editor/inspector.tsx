@@ -1,6 +1,6 @@
 'use client'
 
-import { constrained, dimensions, editVertex, editableVertices, openShape, replaceObject, setDimension, setScale, worldVertices, type SceneObject } from '@/lib/editor/scene'
+import { constrained, defaultName, dimensions, editVertex, editableVertices, openShape, replaceObject, setDimension, setScale, worldVertices, type SceneObject } from '@/lib/editor/scene'
 import { validCanvas } from '@/lib/editor/project'
 import type { SceneController } from './use-scene-history'
 import { NumberField, ColorField, inputClass } from './fields'
@@ -16,7 +16,7 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
   return <section aria-label="Inspector" className="editor-inspector min-h-0 flex-1 overflow-y-auto p-3">
     <h2 className="editor-section-title">Inspector</h2>
     {selected ? <>
-      <label className="editor-field mb-3">Name<input aria-label="Object name" className={inputClass} maxLength={1000} value={selected.name} onChange={e => update(o => ({ ...o, name: e.target.value }))} onBlur={() => { update(o => ({ ...o, name: o.name.trim() || (o.type === 'polyline' ? 'Connected dots' : o.type[0].toUpperCase() + o.type.slice(1)) })); state.commit() }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.stopPropagation(); state.cancel() } }} /></label>
+      <label className="editor-field mb-3">Name<input aria-label="Object name" className={inputClass} maxLength={1000} value={selected.name} onChange={e => update(o => ({ ...o, name: e.target.value }))} onBlur={() => { update(o => ({ ...o, name: o.name.trim() || defaultName(o.type) })); state.commit() }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.stopPropagation(); state.cancel() } }} /></label>
       <h3 className="editor-section-title">Geometry</h3>
       <div className="grid grid-cols-2 gap-2">
         {(['x', 'y', 'width', 'height', 'rotation', 'scaleX', 'scaleY'] as const).map(field => {
@@ -38,6 +38,7 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
           {(['x', 'y'] as const).map(axis => <NumberField key={axis} label={`V${index + 1} ${axis.toUpperCase()}`} value={p[axis]} disabled={selected.locked} validate={v => {
             if (!openShape(selected.type)) return true
             const points = worldVertices(selected).map((p, i) => i === index ? { ...p, [axis]: Math.round(v) } : p)
+            if (selected.type === 'freehand' && points.length === 1) return true
             return points.some(p => Math.hypot(p.x - points[0].x, p.y - points[0].y) >= 1e-8)
           }} {...transaction} onChange={v => update(o => editVertex(o, index, { ...worldVertices(o)[index], [axis]: Math.round(v) }))} />)}
         </div>)}

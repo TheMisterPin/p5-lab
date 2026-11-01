@@ -1,6 +1,6 @@
 import type p5 from 'p5'
 import { formatNumber as n } from './format-number'
-import { dimensions, dotDiameter, openShape, type Scene, type SceneObject } from './scene'
+import { dimensions, dotDiameter, dottedShape, openShape, type Scene, type SceneObject } from './scene'
 
 type Call = { method: string; args: (number | string)[] }
 /** Geometry is scaled here, once. Stroke and dot widths stay in canvas units. */
@@ -8,6 +8,7 @@ export function geometryCalls(object: SceneObject): Call[] {
   const { width, height } = dimensions(object)
   if (object.geometry.kind === 'box') return [{ method: object.type === 'ellipse' || object.type === 'circle' ? 'ellipse' : 'rect', args: [-width / 2, -height / 2, width, height] }]
   const points = object.geometry.points.map(p => ({ x: p.x * object.scaleX, y: p.y * object.scaleY }))
+  if (points.length < 2) return []
   return [{ method: 'beginShape', args: [] }, ...points.map(p => ({ method: 'vertex', args: [p.x, p.y] })), { method: 'endShape', args: openShape(object.type) ? [] : ['CLOSE'] }]
 }
 export function drawScene(p: p5, scene: Scene) {
@@ -35,7 +36,7 @@ export function drawScene(p: p5, scene: Scene) {
       const args = call.args.map(v => v === 'CLOSE' ? p.CLOSE : v)
       ;(p[call.method as keyof p5] as (...args: unknown[]) => void)(...args)
     }
-    if (object.type === 'polyline' && a.stroke && object.geometry.kind === 'vertices') {
+    if (dottedShape(object.type) && a.stroke && object.geometry.kind === 'vertices') {
       p.noStroke(); p.fill(a.stroke)
       const d = dotDiameter(object)
       for (const point of object.geometry.points) p.ellipse(point.x * object.scaleX - d / 2, point.y * object.scaleY - d / 2, d, d)
@@ -59,7 +60,7 @@ export function sceneToCode(scene: Scene): string {
     }
     lines.push(`  p.translate(${n(object.x)}, ${n(object.y)});`, `  p.rotate(${n(object.rotation)});`)
     for (const c of geometryCalls(object)) lines.push(`  p.${c.method}(${c.args.map(v => v === 'CLOSE' ? 'p.CLOSE' : typeof v === 'number' ? n(v) : JSON.stringify(v)).join(', ')});`)
-    if (object.type === 'polyline' && a.stroke && object.geometry.kind === 'vertices') {
+    if (dottedShape(object.type) && a.stroke && object.geometry.kind === 'vertices') {
       const d = dotDiameter(object)
       lines.push('  p.noStroke();', `  p.fill(${JSON.stringify(a.stroke)});`)
       for (const v of object.geometry.points) lines.push(`  p.ellipse(${n(v.x * object.scaleX - d / 2)}, ${n(v.y * object.scaleY - d / 2)}, ${n(d)}, ${n(d)});`)

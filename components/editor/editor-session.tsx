@@ -27,7 +27,10 @@ export function EditorSession({ sketch, histories, suspended, onChange, onExport
   const [ready, setReady] = useState(false)
   const canvas = useRef<p5 | null>(null)
   const selected = state.scene.objects.find(o => o.id === selectedId)
-  const tools = useCanvasTools(state, tool, mode, selectedId, select, () => { setTool('select'); setMode('move') })
+  const tools = useCanvasTools(state, tool, mode, selectedId, select, () => {
+    if (tool === 'freehand' || tool === 'eraser') return
+    setTool('select'); setMode('move')
+  })
   useEffect(() => { if (suspended) tools.cancel() }, [suspended])
   useEffect(() => { if (selected && mode === 'vertices' && !editableVertices(selected)) setMode('move') }, [selected?.id, mode])
   function changeTool(t: Tool) { state.commit(); tools.cancel(); setTool(t); setPanel('canvas') }
@@ -60,10 +63,11 @@ export function EditorSession({ sketch, histories, suspended, onChange, onExport
   }
   return <div onKeyDown={keyDown} className="flex min-h-0 flex-1 flex-col">
     <EditorToolbar tool={tool} mode={mode} setTool={changeTool} setMode={changeMode} selected={selected} ready={ready} canUndo={!!state.history.past.length} canRedo={!!state.history.future.length} undo={() => travel('undo')} redo={() => travel('redo')}
-      finish={tools.finish} canFinish={tools.points.length >= 2} addCentered={() => {
-        const s = state.current(), w = Math.min(120, s.width / 2, s.height / 2), h = tool !== 'select' && constrained(tool) ? w : Math.min(90, s.height / 2)
+      finish={tools.finish} canFinish={tools.points.length >= 2}       addCentered={() => {
+        if (tool === 'select' || tool === 'eraser' || tool === 'freehand' || tool === 'polyline') return
+        const s = state.current(), w = Math.min(120, s.width / 2, s.height / 2), h = constrained(tool) ? w : Math.min(90, s.height / 2)
         setPanel('canvas')
-        tools.add(fromBounds(tool === 'select' ? 'rectangle' : tool, { x: (s.width - w) / 2, y: (s.height - h) / 2 }, { x: (s.width + w) / 2, y: (s.height + h) / 2 }))
+        tools.add(fromBounds(tool, { x: (s.width - w) / 2, y: (s.height - h) / 2 }, { x: (s.width + w) / 2, y: (s.height + h) / 2 }))
       }} png={() => { state.commit(); canvas.current?.saveCanvas('sketch', 'png') }} code={() => { state.commit(); if (!onExport(state.current())) setError('Code sketch could not be saved.') }} js={() => { state.commit(); downloadCode(state.current(), sketch.name) }} project={() => { state.commit(); onProject(state.current()) }} importProject={onImport} />
     {(error || tools.error) && <p role="alert" className="shrink-0 border-b px-3 py-1 text-xs text-destructive">{error || tools.error}</p>}
     <PanelSwitcher value={panel} onChange={setPanel} />

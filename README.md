@@ -28,8 +28,10 @@ The Sketchbook logo returns to the landing page. Header links switch between edi
 | Quad | 6 | Click four vertices in authored order. |
 | Line | 7 | Drag endpoints or click two endpoints. |
 | Connected dots | 8 | Click vertices or drag the next segment endpoint. Enter, double-click, or Finish completes it; Escape cancels. |
+| Freehand | 9 | Click places a single dot. Dragging samples a freehand path of connected dots and segments, like a drawing app. The tool stays active after each stroke. |
+| Eraser | 0 | Click or drag to erase freehand strokes only. Connected-dots polylines and other shapes are left untouched. |
 
-Connected dots requires two distinct points. Double-click does not add a duplicate final vertex. Holding and dragging places one endpoint on release, without freehand sampling. The Add centered control provides keyboard creation for fixed-size shapes.
+Connected dots requires two distinct points. Double-click does not add a duplicate final vertex. Holding and dragging places one endpoint on release, without freehand sampling. Freehand sampling keeps the stroke while the pointer moves and commits on release. The Add centered control provides keyboard creation for fixed-size shapes.
 
 ### Selection, geometry, and objects
 
