@@ -1,4 +1,5 @@
 import type p5 from 'p5'
+import { formatNumber as n } from './format-number'
 import { dimensions, dotDiameter, openShape, type Scene, type SceneObject } from './scene'
 
 type Call = { method: string; args: (number | string)[] }
@@ -43,8 +44,7 @@ export function drawScene(p: p5, scene: Scene) {
   }
 }
 export function sceneToCode(scene: Scene): string {
-  const n = (v: number) => String(Object.is(v, -0) ? 0 : v)
-  const lines = ['p.setup = () => {', `  p.createCanvas(${scene.width}, ${scene.height});`, '  p.noLoop();', '};', '', 'p.draw = () => {', `  p.background(${JSON.stringify(scene.background)});`, '  p.rectMode(p.CORNER);', '  p.ellipseMode(p.CORNER);']
+  const lines = ['p.setup = () => {', `  p.createCanvas(${n(scene.width)}, ${n(scene.height)});`, '  p.noLoop();', '};', '', 'p.draw = () => {', `  p.background(${JSON.stringify(scene.background)});`, '  p.rectMode(p.CORNER);', '  p.ellipseMode(p.CORNER);']
   for (const object of scene.objects) {
     if (!object.visible) continue
     const a = object.appearance
@@ -54,15 +54,15 @@ export function sceneToCode(scene: Scene): string {
     else if (a.fill.kind === 'solid') lines.push(`  p.fill(${JSON.stringify(a.fill.color)});`)
     else {
       const f = a.fill
-      lines.push('  {', `    const blue = p.color(${JSON.stringify(f.blue)}), pink = p.color(${JSON.stringify(f.pink)});`, `    blue.setAlpha(${f.alpha}); pink.setAlpha(${f.alpha});`,
-        `    const gradient = p.drawingContext.createLinearGradient(${f.start.x}, ${f.start.y}, ${f.end.x}, ${f.end.y});`, '    gradient.addColorStop(0, blue.toString());', '    gradient.addColorStop(1, pink.toString());', '    p.fill(0);', '    p.drawingContext.fillStyle = gradient;', '  }')
+      lines.push('  {', `    const blue = p.color(${JSON.stringify(f.blue)}), pink = p.color(${JSON.stringify(f.pink)});`, `    blue.setAlpha(${n(f.alpha)}); pink.setAlpha(${n(f.alpha)});`,
+        `    const gradient = p.drawingContext.createLinearGradient(${n(f.start.x)}, ${n(f.start.y)}, ${n(f.end.x)}, ${n(f.end.y)});`, '    gradient.addColorStop(0, blue.toString());', '    gradient.addColorStop(1, pink.toString());', '    p.fill(0);', '    p.drawingContext.fillStyle = gradient;', '  }')
     }
     lines.push(`  p.translate(${n(object.x)}, ${n(object.y)});`, `  p.rotate(${n(object.rotation)});`)
     for (const c of geometryCalls(object)) lines.push(`  p.${c.method}(${c.args.map(v => v === 'CLOSE' ? 'p.CLOSE' : typeof v === 'number' ? n(v) : JSON.stringify(v)).join(', ')});`)
     if (object.type === 'polyline' && a.stroke && object.geometry.kind === 'vertices') {
       const d = dotDiameter(object)
       lines.push('  p.noStroke();', `  p.fill(${JSON.stringify(a.stroke)});`)
-      for (const v of object.geometry.points) lines.push(`  p.ellipse(${n(v.x * object.scaleX - d / 2)}, ${n(v.y * object.scaleY - d / 2)}, ${d}, ${d});`)
+      for (const v of object.geometry.points) lines.push(`  p.ellipse(${n(v.x * object.scaleX - d / 2)}, ${n(v.y * object.scaleY - d / 2)}, ${n(d)}, ${n(d)});`)
     }
     lines.push('  p.pop();')
   }

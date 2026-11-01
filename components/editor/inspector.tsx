@@ -13,10 +13,11 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
   }
   const scene = state.scene
   const d = selected ? dimensions(selected) : null
-  return <section aria-label="Inspector" className="editor-inspector min-h-0 overflow-y-auto border-b p-3">
-    <h2 className="mb-2 text-xs font-semibold">{selected ? 'Object' : 'Canvas'}</h2>
+  return <section aria-label="Inspector" className="editor-inspector min-h-0 flex-1 overflow-y-auto p-3">
+    <h2 className="editor-section-title">Inspector</h2>
     {selected ? <>
       <label className="editor-field mb-3">Name<input aria-label="Object name" className={inputClass} maxLength={1000} value={selected.name} onChange={e => update(o => ({ ...o, name: e.target.value }))} onBlur={() => { update(o => ({ ...o, name: o.name.trim() || (o.type === 'polyline' ? 'Connected dots' : o.type[0].toUpperCase() + o.type.slice(1)) })); state.commit() }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.stopPropagation(); state.cancel() } }} /></label>
+      <h3 className="editor-section-title">Geometry</h3>
       <div className="grid grid-cols-2 gap-2">
         {(['x', 'y', 'width', 'height', 'rotation', 'scaleX', 'scaleY'] as const).map(field => {
           const label = { x: 'X', y: 'Y', width: 'Width', height: 'Height', rotation: 'Rotation °', scaleX: 'Scale X %', scaleY: 'Scale Y %' }[field]
@@ -27,13 +28,17 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
       </div>
       <label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" aria-label="Proportional scale" checked={selected.proportional} disabled={selected.locked || constrained(selected.type)} onChange={e => { update(o => ({ ...o, proportional: e.target.checked })); state.commit() }} />Proportional</label>
       {editableVertices(selected) && vertexMode && <div className="mt-3 border-t pt-3">
-        <h3 className="mb-2 text-xs font-medium">Vertices</h3>
+        <h3 className="editor-section-title">Vertices</h3>
         {worldVertices(selected).map((p, index) => <div key={`${selected.id}-${index}`} className="mb-2 grid grid-cols-2 gap-2">
-          {(['x', 'y'] as const).map(axis => <NumberField key={axis} label={`V${index + 1} ${axis.toUpperCase()}`} value={p[axis]} disabled={selected.locked} {...transaction} onChange={v => update(o => editVertex(o, index, { ...worldVertices(o)[index], [axis]: v }))} />)}
+          {(['x', 'y'] as const).map(axis => <NumberField key={axis} label={`V${index + 1} ${axis.toUpperCase()}`} value={p[axis]} disabled={selected.locked} validate={v => {
+            if (!openShape(selected.type)) return true
+            const points = worldVertices(selected).map((p, i) => i === index ? { ...p, [axis]: v } : p)
+            return points.some(p => Math.hypot(p.x - points[0].x, p.y - points[0].y) >= 1e-8)
+          }} {...transaction} onChange={v => update(o => editVertex(o, index, { ...worldVertices(o)[index], [axis]: v }))} />)}
         </div>)}
       </div>}
       <div className="mt-3 border-t pt-3">
-        <h3 className="mb-2 text-xs font-medium">Appearance</h3>
+        <h3 className="editor-section-title">Appearance</h3>
         <div className="grid grid-cols-2 gap-2">
           {!openShape(selected.type) && <>
             <label className="editor-field">Fill<select aria-label="Fill" className={inputClass} value={selected.appearance.fill.kind} onChange={e => {
@@ -50,7 +55,7 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
       </div>
     </> : null}
     <div className={selected ? 'mt-3 border-t pt-3' : ''}>
-      {selected && <h3 className="mb-2 text-xs font-semibold">Canvas</h3>}
+      <h3 className="editor-section-title">Canvas</h3>
       <div className="grid grid-cols-2 gap-2">
         <NumberField label="Canvas width" value={scene.width} min={1} max={8192} validate={width => validCanvas(width, state.current().height)} {...transaction} onChange={width => { const s = state.current(); if (validCanvas(width, s.height)) state.preview({ ...s, width }) }} />
         <NumberField label="Canvas height" value={scene.height} min={1} max={8192} validate={height => validCanvas(state.current().width, height)} {...transaction} onChange={height => { const s = state.current(); if (validCanvas(s.width, height)) state.preview({ ...s, height }) }} />
