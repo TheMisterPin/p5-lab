@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { canvasClientPoint, fitViewport, panViewport, sceneToScreen, screenToScene, screenTolerance, zoomAt } from '../lib/editor/viewport'
+import { canvasClientPoint, fitViewport, panViewport, sceneToScreen, screenToScene, screenTolerance, snapPixel, snapPoint, zoomAt } from '../lib/editor/viewport'
 import { editableVertices, editVertex, emptyScene, fromPoints, hitTest, worldVertices } from '../lib/editor/scene'
 import { commit, historyFor, redo, undo } from '../lib/editor/history'
 import { parseProject, projectJSON } from '../lib/editor/project'
@@ -37,6 +37,14 @@ test('client mapping matches viewport coordinates at multiple zooms, offsets and
       point(canvasClientPoint({ x: screen.x + stage.x, y: screen.y + stage.y }, rect, art), world)
     }
   }
+})
+
+test('artwork pointer edits snap to whole canvas pixels', () => {
+  assert.equal(snapPixel(12.4), 12)
+  assert.equal(snapPixel(-3.6), -4)
+  assert.deepEqual(snapPoint({ x: 100.49, y: 85.5 }), { x: 100, y: 86 })
+  const art = { width: 800, height: 640 }, rect = { left: 10.25, top: 20.75, width: 1600, height: 1280 }
+  assert.deepEqual(snapPoint(canvasClientPoint({ x: 10.25 + 200.3, y: 20.75 + 160.7 }, rect, art)), { x: 100, y: 80 })
 })
 
 test('line selection tolerance is constant in screen pixels at every zoom', () => {

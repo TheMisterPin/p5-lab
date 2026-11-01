@@ -33,7 +33,7 @@ Connected dots requires two distinct points. Double-click does not add a duplica
 
 ### Selection, geometry, and objects
 
-Use V to select, W to move, E to rotate, R to scale, and T for triangle, quad, line, and connected-dot vertex editing. Shift snaps rotation to 15° or constrains scaling. Arrow keys nudge by one canvas pixel; Shift + arrows nudges by ten. Ctrl/Command + D duplicates; Delete removes an unlocked selection. Undo/redo uses Ctrl/Command + Z and Ctrl/Command + Shift + Z (or Ctrl + Y).
+Use V to select, W to move, E to rotate, R to scale, and T for triangle, quad, line, and connected-dot vertex editing. Pointer placement, creation, moves, and vertex edits snap to whole canvas pixels (rotation and free scaling can still produce non-integer values). Shift snaps rotation to 15° or constrains scaling. Arrow keys nudge by one canvas pixel; Shift + arrows nudges by ten. Ctrl/Command + D duplicates; Delete removes an unlocked selection. Undo/redo uses Ctrl/Command + Z and Ctrl/Command + Shift + Z (or Ctrl + Y).
 
 The inspector edits the name, center position, local dimensions, rotation, and Scale X/Y percentages. **100% refers to base geometry**, and dimensions are derived from base geometry and scale. Circle and Square always use uniform scale. The proportional lock is optional for other shapes. Scaling changes geometry without scaling stroke or dot sizes.
 

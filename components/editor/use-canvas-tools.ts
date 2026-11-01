@@ -4,7 +4,7 @@ import { useRef, useState, type PointerEvent as PE, type MouseEvent as ME } from
 import { editVertex, fromBounds, fromClicks, fromPoints, hitTest, objectId, replaceObject, resizeObject, unrotate, type Scene, type SceneObject, type ShapeKind } from '@/lib/editor/scene'
 import type { Point2D } from '@/lib/sketches/types'
 import type { SceneController } from './use-scene-history'
-import { canvasClientPoint, screenTolerance } from '@/lib/editor/viewport'
+import { canvasClientPoint, screenTolerance, snapPixel, snapPoint } from '@/lib/editor/viewport'
 export type Tool = 'select' | ShapeKind
 export type Mode = 'move' | 'rotate' | 'scale' | 'vertices'
 export const handles: Record<string, Point2D> = { nw: { x: -1, y: -1 }, n: { x: 0, y: -1 }, ne: { x: 1, y: -1 }, e: { x: 1, y: 0 }, se: { x: 1, y: 1 }, s: { x: 0, y: 1 }, sw: { x: -1, y: 1 }, w: { x: -1, y: 0 } }
@@ -33,7 +33,7 @@ export function useCanvasTools(state: SceneController, tool: Tool, mode: Mode, s
   }
   function pointFor(event: { clientX: number; clientY: number; currentTarget: SVGSVGElement }) {
     const b = event.currentTarget.getBoundingClientRect(), s = state.current()
-    return canvasClientPoint({ x: event.clientX, y: event.clientY }, b, s)
+    return snapPoint(canvasClientPoint({ x: event.clientX, y: event.clientY }, b, s))
   }
   function append(point: Point2D) {
     const current = pointsRef.current
@@ -71,7 +71,11 @@ export function useCanvasTools(state: SceneController, tool: Tool, mode: Mode, s
     const o = g.object!
     let next = o
     if (g.handle.startsWith('vertex:')) next = editVertex(o, Number(g.handle.slice(7)), point)
-    else if (mode === 'move') next = { ...o, x: o.x + (g.handle === 'y' ? 0 : point.x - g.start.x), y: o.y + (g.handle === 'x' ? 0 : point.y - g.start.y) }
+    else if (mode === 'move') next = {
+      ...o,
+      x: g.handle === 'y' ? o.x : snapPixel(o.x + point.x - g.start.x),
+      y: g.handle === 'x' ? o.y : snapPixel(o.y + point.y - g.start.y),
+    }
     else if (mode === 'rotate') {
       const a = Math.atan2(g.start.y - o.y, g.start.x - o.x), b = Math.atan2(point.y - o.y, point.x - o.x)
       let rotation = o.rotation + Math.atan2(Math.sin(b - a), Math.cos(b - a))

@@ -27,4 +27,7 @@ export function panViewport(view: Viewport, delta: Point2D): Viewport {
 export function canvasClientPoint(client: Point2D, rect: { left: number; top: number; width: number; height: number }, artwork: Size): Point2D {
   return screenToScene({ x: rect.left, y: rect.top, scale: rect.width / artwork.width }, client)
 }
+/** Artwork edits use whole canvas pixels; zoom/pan mapping otherwise yields fractions. */
+export const snapPixel = (value: number) => Math.round(value)
+export const snapPoint = (point: Point2D): Point2D => ({ x: snapPixel(point.x), y: snapPixel(point.y) })
 export const screenTolerance = (pixels: number, scale: number) => pixels / scale

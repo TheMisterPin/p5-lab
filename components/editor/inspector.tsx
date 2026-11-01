@@ -23,7 +23,12 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
           const label = { x: 'X', y: 'Y', width: 'Width', height: 'Height', rotation: 'Rotation °', scaleX: 'Scale X %', scaleY: 'Scale Y %' }[field]
           const value = field === 'rotation' ? selected.rotation * 180 / Math.PI : field === 'scaleX' || field === 'scaleY' ? selected[field] * 100 : field === 'width' || field === 'height' ? d![field] : selected[field]
           return <NumberField key={`${selected.id}-${field}`} label={label} value={value} disabled={selected.locked || ((field === 'width' || field === 'height') && d![field] === 0)} min={field === 'scaleX' || field === 'scaleY' || field === 'width' || field === 'height' ? 0.001 : undefined} {...transaction}
-            onChange={v => update(o => field === 'width' || field === 'height' ? setDimension(o, field, v) : field === 'scaleX' || field === 'scaleY' ? setScale(o, field === 'scaleX' ? 'x' : 'y', v / 100) : { ...o, [field]: field === 'rotation' ? v * Math.PI / 180 : v })} />
+            onChange={v => update(o => {
+              if (field === 'width' || field === 'height') return setDimension(o, field, Math.round(v))
+              if (field === 'scaleX' || field === 'scaleY') return setScale(o, field === 'scaleX' ? 'x' : 'y', v / 100)
+              if (field === 'rotation') return { ...o, rotation: v * Math.PI / 180 }
+              return { ...o, [field]: Math.round(v) }
+            })} />
         })}
       </div>
       <label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" aria-label="Proportional scale" checked={selected.proportional} disabled={selected.locked || constrained(selected.type)} onChange={e => { update(o => ({ ...o, proportional: e.target.checked })); state.commit() }} />Proportional</label>
@@ -32,9 +37,9 @@ export function Inspector({ state, selected, vertexMode }: { state: SceneControl
         {worldVertices(selected).map((p, index) => <div key={`${selected.id}-${index}`} className="mb-2 grid grid-cols-2 gap-2">
           {(['x', 'y'] as const).map(axis => <NumberField key={axis} label={`V${index + 1} ${axis.toUpperCase()}`} value={p[axis]} disabled={selected.locked} validate={v => {
             if (!openShape(selected.type)) return true
-            const points = worldVertices(selected).map((p, i) => i === index ? { ...p, [axis]: v } : p)
+            const points = worldVertices(selected).map((p, i) => i === index ? { ...p, [axis]: Math.round(v) } : p)
             return points.some(p => Math.hypot(p.x - points[0].x, p.y - points[0].y) >= 1e-8)
-          }} {...transaction} onChange={v => update(o => editVertex(o, index, { ...worldVertices(o)[index], [axis]: v }))} />)}
+          }} {...transaction} onChange={v => update(o => editVertex(o, index, { ...worldVertices(o)[index], [axis]: Math.round(v) }))} />)}
         </div>)}
       </div>}
       <div className="mt-3 border-t pt-3">

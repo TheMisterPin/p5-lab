@@ -44,6 +44,8 @@ test('all shape constructors produce valid serializable scenes and authored quad
   const points = [{ x: 10, y: 10 }, { x: 100, y: 70 }, { x: 20, y: 80 }, { x: 80, y: 15 }]
   assert.deepEqual(worldVertices(fromClicks('quad', points)), points)
   assert.deepEqual(dimensions(fromClicks('ellipse', [{ x: 200, y: 200 }, { x: 240, y: 230 }])), { width: 80, height: 60 })
+  assert.deepEqual(dimensions(fromClicks('circle', [{ x: 100, y: 100 }, { x: 110, y: 100 }])), { width: 20, height: 20 })
+  assert.deepEqual(dimensions(fromClicks('circle', [{ x: 0, y: 0 }, { x: 3, y: 4 }])), { width: 10, height: 10 })
 })
 
 test('circles and squares retain uniform dimensions through bounds, numeric scaling and resize', () => {
