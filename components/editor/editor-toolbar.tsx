@@ -1,10 +1,10 @@
-import { Check, Circle, CircleDashed, Code2, Diamond, Download, FileDown, FolderOpen, Minus, MousePointer2, Move, Plus, Redo2, RectangleHorizontal, RotateCw, Scaling, Square, Triangle, Undo2, Waypoints } from 'lucide-react'
+import { Check, Circle, CircleDashed, Code2, Diamond, Download, Eraser, FileDown, FolderOpen, Minus, MousePointer2, Move, Pencil, Plus, Redo2, RectangleHorizontal, RotateCw, Scaling, Square, Triangle, Undo2, Waypoints } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { editableVertices, type SceneObject, type ShapeKind } from '@/lib/editor/scene'
+import { editableVertices, type SceneObject } from '@/lib/editor/scene'
 import { IconButton } from './icon-button'
 import type { Tool, Mode } from './use-canvas-tools'
 
-const creation = [ ['triangle', 'Triangle', Triangle], ['rectangle', 'Rectangle', RectangleHorizontal], ['ellipse', 'Ellipse', CircleDashed], ['circle', 'Circle', Circle], ['square', 'Square', Square], ['quad', 'Quad', Diamond], ['line', 'Line', Minus], ['polyline', 'Connected dots', Waypoints] ] as const
+const creation = [ ['triangle', 'Triangle', Triangle], ['rectangle', 'Rectangle', RectangleHorizontal], ['ellipse', 'Ellipse', CircleDashed], ['circle', 'Circle', Circle], ['square', 'Square', Square], ['quad', 'Quad', Diamond], ['line', 'Line', Minus], ['polyline', 'Connected dots', Waypoints], ['freehand', 'Freehand', Pencil] ] as const
 export function EditorToolbar({ tool, mode, setTool, setMode, selected, ready, canUndo, canRedo, undo, redo, finish, canFinish, addCentered, png, code, js, project, importProject }: {
   tool: Tool; mode: Mode; setTool: (t: Tool) => void; setMode: (m: Mode) => void; selected?: SceneObject; ready: boolean
   canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void; finish: () => void; canFinish: boolean
@@ -14,7 +14,8 @@ export function EditorToolbar({ tool, mode, setTool, setMode, selected, ready, c
     <div className="flex flex-wrap" role="toolbar" aria-label="Shape tools">
       <IconButton label="Select" shortcut="V" active={tool === 'select'} disabled={!ready} onClick={() => setTool('select')}><MousePointer2 /></IconButton>
       {creation.map(([type, label, Icon], i) => <IconButton key={type} label={label} shortcut={String(i + 1)} active={tool === type} disabled={!ready} onClick={() => setTool(type)}><Icon /></IconButton>)}
-      {tool !== 'select' && tool !== 'polyline' && <IconButton label="Add centered" disabled={!ready} onClick={addCentered}><Plus /></IconButton>}
+      <IconButton label="Eraser" shortcut="0" active={tool === 'eraser'} disabled={!ready} onClick={() => setTool('eraser')}><Eraser /></IconButton>
+      {tool !== 'select' && tool !== 'polyline' && tool !== 'freehand' && tool !== 'eraser' && <IconButton label="Add centered" disabled={!ready} onClick={addCentered}><Plus /></IconButton>}
       {tool === 'polyline' && <IconButton label="Finish" shortcut="Enter" disabled={!canFinish} onClick={finish}><Check /></IconButton>}
     </div>
     <span className="mx-1 h-5 border-l" />
@@ -38,4 +39,7 @@ export function EditorToolbar({ tool, mode, setTool, setMode, selected, ready, c
     </div>
   </div>
 }
-export const shortcutTools: Record<string, ShapeKind> = Object.fromEntries(creation.map(([type], i) => [String(i + 1), type]))
+export const shortcutTools: Record<string, Tool> = {
+  ...Object.fromEntries(creation.map(([type], i) => [String(i + 1), type])),
+  '0': 'eraser',
+}

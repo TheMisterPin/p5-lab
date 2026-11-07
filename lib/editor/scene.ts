@@ -1,6 +1,6 @@
 import type { Point2D } from '../sketches/types'
 
-export const shapeKinds = ['triangle', 'rectangle', 'ellipse', 'circle', 'square', 'quad', 'line', 'polyline'] as const
+export const shapeKinds = ['triangle', 'rectangle', 'ellipse', 'circle', 'square', 'quad', 'line', 'polyline', 'freehand'] as const
 export type ShapeKind = typeof shapeKinds[number]
 export type Fill = { kind: 'none' } | { kind: 'solid'; color: string } | {
   kind: 'gradient'; start: Point2D; end: Point2D; blue: string; pink: string; alpha: number
@@ -13,7 +13,8 @@ export type SceneObject = {
   proportional: boolean; visible: boolean; locked: boolean; appearance: Appearance
 }
 export type Scene = { version: 2; width: number; height: number; background: string; objects: SceneObject[] }
-export const openShape = (type: ShapeKind) => type === 'line' || type === 'polyline'
+export const openShape = (type: ShapeKind) => type === 'line' || type === 'polyline' || type === 'freehand'
+export const dottedShape = (type: ShapeKind) => type === 'polyline' || type === 'freehand'
 export const constrained = (type: ShapeKind) => type === 'circle' || type === 'square'
 export const editableVertices = (object: SceneObject) => object.geometry.kind === 'vertices'
 export function objectId() {
@@ -21,6 +22,9 @@ export function objectId() {
 }
 export const emptyScene = (): Scene => ({ version: 2, width: 800, height: 640, background: '#fafafa', objects: [] })
 export const defaultAppearance = (type: ShapeKind): Appearance => ({ fill: openShape(type) ? { kind: 'none' } : { kind: 'solid', color: '#dce3fa' }, stroke: '#252630', strokeWidth: 2, opacity: 1 })
+export function defaultName(type: ShapeKind) {
+  return type === 'polyline' ? 'Connected dots' : type === 'freehand' ? 'Freehand' : type[0].toUpperCase() + type.slice(1)
+}
 export function bounds(points: Point2D[]) {
   const xs = points.map(p => p.x), ys = points.map(p => p.y)
   const left = Math.min(...xs), right = Math.max(...xs), top = Math.min(...ys), bottom = Math.max(...ys)
@@ -34,7 +38,7 @@ export function dimensions(object: SceneObject) {
   return { width: b.width * object.scaleX, height: b.height * object.scaleY }
 }
 function common(type: ShapeKind): Omit<SceneObject, 'geometry'> {
-  return { id: objectId(), type, name: type === 'polyline' ? 'Connected dots' : type[0].toUpperCase() + type.slice(1),
+  return { id: objectId(), type, name: defaultName(type),
     x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, proportional: constrained(type), visible: true, locked: false, appearance: defaultAppearance(type) }
 }
 export function fromPoints(type: ShapeKind, points: Point2D[], id = objectId()): SceneObject {
@@ -49,13 +53,13 @@ export function fromBounds(type: ShapeKind, a: Point2D, target: Point2D): SceneO
     b = { x: a.x + (b.x < a.x ? -size : size), y: a.y + (b.y < a.y ? -size : size) }
   }
   const left = Math.min(a.x, b.x), top = Math.min(a.y, b.y), width = Math.max(1, Math.abs(b.x - a.x)), height = Math.max(1, Math.abs(b.y - a.y))
-  if (type === 'line' || type === 'polyline') return fromPoints(type, [a, b])
+  if (type === 'line' || type === 'polyline' || type === 'freehand') return fromPoints(type, [a, b])
   if (type === 'triangle') return fromPoints(type, [{ x: left + width / 2, y: top }, { x: left + width, y: top + height }, { x: left, y: top + height }])
   if (type === 'quad') return fromPoints(type, [{ x: left, y: top }, { x: left + width, y: top }, { x: left + width, y: top + height }, { x: left, y: top + height }])
   return { ...common(type), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, geometry: { kind: 'box', width, height } }
 }
 export function fromClicks(type: ShapeKind, points: Point2D[]) {
-  if (['triangle', 'quad', 'line', 'polyline'].includes(type)) return fromPoints(type, points)
+  if (['triangle', 'quad', 'line', 'polyline', 'freehand'].includes(type)) return fromPoints(type, points)
   if (type === 'ellipse' || type === 'circle') {
     const [a, b] = points
     const r = Math.hypot(b.x - a.x, b.y - a.y)
@@ -84,7 +88,7 @@ export function worldVertices(object: SceneObject): Point2D[] {
 export function editVertex(object: SceneObject, index: number, target: Point2D): SceneObject {
   if (object.locked || object.geometry.kind !== 'vertices' || !Number.isFinite(target.x) || !Number.isFinite(target.y)) return object
   const points = object.geometry.points.map((p, i) => i === index ? localPoint(object, target) : p)
-  if (openShape(object.type) && points.every(p => Math.hypot((p.x - points[0].x) * object.scaleX, (p.y - points[0].y) * object.scaleY) < 1e-8)) return object
+  if (openShape(object.type) && points.length > 1 && points.every(p => Math.hypot((p.x - points[0].x) * object.scaleX, (p.y - points[0].y) * object.scaleY) < 1e-8)) return object
   const center = bounds(points), position = worldPoint(object, center)
   return { ...object, ...position, geometry: { kind: 'vertices', points: points.map(p => ({ x: p.x - center.x, y: p.y - center.y })) } }
 }
@@ -134,6 +138,24 @@ export function reorderObject(scene: Scene, id: string, action: 'forward' | 'bac
   return { ...scene, objects }
 }
 export const dotDiameter = (object: SceneObject) => Math.max(6, object.appearance.strokeWidth * 2.5)
+/** Append canvas points along `to` so consecutive samples stay about `spacing` apart. */
+export function sampleStroke(points: Point2D[], to: Point2D, spacing = 3): Point2D[] {
+  if (!points.length) return [{ x: to.x, y: to.y }]
+  const last = points.at(-1)!
+  const dx = to.x - last.x, dy = to.y - last.y, distance = Math.hypot(dx, dy)
+  if (distance < spacing) return points
+  const next = points.slice()
+  const steps = Math.max(1, Math.floor(distance / spacing))
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps
+    const point = { x: Math.round(last.x + dx * t), y: Math.round(last.y + dy * t) }
+    const prev = next.at(-1)!
+    if (point.x !== prev.x || point.y !== prev.y) next.push(point)
+  }
+  const tip = next.at(-1)!
+  if (tip.x !== to.x || tip.y !== to.y) next.push({ x: to.x, y: to.y })
+  return next
+}
 export function segmentDistance(p: Point2D, a: Point2D, b: Point2D) {
   const dx = b.x - a.x, dy = b.y - a.y, length = dx * dx + dy * dy
   const t = length ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length)) : 0
@@ -159,7 +181,7 @@ export function contains(object: SceneObject, world: Point2D, tolerance = 0): bo
   const points = worldVertices(object), open = openShape(object.type)
   if (a.stroke && points.some((p, i) => i > 0 && segmentDistance(world, points[i - 1], p) <= strokeTolerance)) return true
   if (!open && a.stroke && segmentDistance(world, points.at(-1)!, points[0]) <= strokeTolerance) return true
-  if (object.type === 'polyline' && a.stroke && points.some(p => Math.hypot(world.x - p.x, world.y - p.y) <= dotDiameter(object) / 2 + tolerance)) return true
+  if (dottedShape(object.type) && a.stroke && points.some(p => Math.hypot(world.x - p.x, world.y - p.y) <= dotDiameter(object) / 2 + tolerance)) return true
   if (open || a.fill.kind === 'none') return false
   let winding = 0
   for (let i = 0; i < points.length; i++) {

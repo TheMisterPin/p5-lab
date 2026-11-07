@@ -23,8 +23,10 @@ test('all emitted geometry, rotation, paint and gradient numbers use the formatt
   shape.appearance = { stroke: '#123456', strokeWidth: 2.3456789, opacity: 0.00001234567, fill: { kind: 'gradient', start: { x: 0.123456789, y: 0.234567891 }, end: { x: 800.345678912, y: 640.456789123 }, blue: '#365edb', pink: '#d52368', alpha: 55.56789123 } }
   const dots = fromPoints('polyline', [{ x: 120.123456789, y: 100.987654321 }, { x: 180.345678912, y: 160.123456789 }])
   dots.appearance.strokeWidth = 3.123456789
-  const scene = { ...emptyScene(), objects: [shape, dots] }, before = JSON.stringify(scene), code = sceneToCode(scene)
-  for (const value of [shape.x, shape.y, shape.rotation, shape.appearance.strokeWidth, shape.appearance.opacity, 0.123456789, 0.234567891, 800.345678912, 640.456789123, 55.56789123, dots.appearance.strokeWidth * 2.5]) assert.ok(code.includes(formatNumber(value)), String(value))
+  const ink = fromPoints('freehand', [{ x: 12.123456789, y: 34.987654321 }, { x: 56.345678912, y: 78.123456789 }, { x: 90.246813579, y: 12.975318642 }])
+  ink.appearance.strokeWidth = 4.123456789
+  const scene = { ...emptyScene(), objects: [shape, dots, ink] }, before = JSON.stringify(scene), code = sceneToCode(scene)
+  for (const value of [shape.x, shape.y, shape.rotation, shape.appearance.strokeWidth, shape.appearance.opacity, 0.123456789, 0.234567891, 800.345678912, 640.456789123, 55.56789123, dots.appearance.strokeWidth * 2.5, ink.appearance.strokeWidth * 2.5]) assert.ok(code.includes(formatNumber(value)), String(value))
   assert.ok(!code.includes('0.6457718232379019'))
   assert.equal(JSON.stringify(scene), before)
   assert.deepEqual(parseProject(projectJSON(scene, 'Precision')).scene, scene)

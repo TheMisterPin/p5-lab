@@ -30,8 +30,8 @@ export function CanvasStage({ scene, selected, tools, mode, tool, onCanvas }: { 
     <div ref={stage} tabIndex={-1} data-pan={pan ? viewport.panning ? 'dragging' : 'ready' : undefined} data-zoom={scale} className="editor-stage relative min-h-0 min-w-0 flex-1 touch-none overflow-hidden outline-none" {...viewport.events}>
       <div className="editor-paper absolute left-0 top-0 origin-top-left shadow-md" style={{ width: scene.width, height: scene.height, transform: `translate(${x}px, ${y}px) scale(${scale})` }}>
         <SceneCanvas scene={scene} onCanvas={onCanvas} />
-        <svg data-canvas-surface viewBox={`0 0 ${scene.width} ${scene.height}`} tabIndex={0} role="group" aria-label="Canvas" className={`absolute inset-0 size-full overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${tool !== 'select' ? 'cursor-crosshair' : selected && !selected.locked ? mode === 'rotate' ? 'cursor-grab' : mode === 'vertices' ? 'cursor-crosshair' : mode === 'scale' ? 'cursor-nwse-resize' : 'cursor-move' : 'cursor-default'}`} {...tools.events}>
-          {tools.points.length > 0 && <g pointerEvents="none" aria-hidden="true">
+        <svg data-canvas-surface viewBox={`0 0 ${scene.width} ${scene.height}`} tabIndex={0} role="group" aria-label="Canvas" className={`absolute inset-0 size-full overflow-visible touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${tool === 'eraser' ? 'cursor-cell' : tool !== 'select' ? 'cursor-crosshair' : selected && !selected.locked ? mode === 'rotate' ? 'cursor-grab' : mode === 'vertices' ? 'cursor-crosshair' : mode === 'scale' ? 'cursor-nwse-resize' : 'cursor-move' : 'cursor-default'}`} {...tools.events}>
+          {tools.points.length > 0 && tool !== 'freehand' && <g pointerEvents="none" aria-hidden="true">
             <polyline points={[...tools.points, ...(!pan && tools.hover ? [tools.hover] : [])].map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#252630" strokeWidth={2} strokeDasharray={`${4 / scale} ${3 / scale}`} />
             {tools.points.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={3 / scale} fill="#252630" />)}
           </g>}

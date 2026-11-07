@@ -4,7 +4,7 @@ import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import type p5 from 'p5'
 import { commit, historyFor, redo, undo } from '../lib/editor/history'
-import { contains, emptyScene, fromBounds, fromClicks, fromPoints, hitTest, localPoint, replaceObject, resizeObject, worldPoint, worldVertices, dimensions, editVertex, duplicateObject, reorderObject, setDimension, setScale, shapeKinds, type SceneObject } from '../lib/editor/scene'
+import { contains, emptyScene, fromBounds, fromClicks, fromPoints, hitTest, localPoint, replaceObject, resizeObject, sampleStroke, worldPoint, worldVertices, dimensions, editVertex, duplicateObject, reorderObject, setDimension, setScale, shapeKinds, type SceneObject } from '../lib/editor/scene'
 import { isScene, migrateShapes, migrateV1, parseProject, projectJSON, validCanvas, type LegacyScene } from '../lib/editor/project'
 import { drawScene, sceneToCode } from '../lib/editor/render'
 import { CODE_STORAGE_KEY, INTERACTIVE_STORAGE_KEY, createCodeSketch, getActiveSketch, loadCodeStore, loadInteractiveStore, saveCodeStore, saveInteractiveStore, upsertSketch } from '../lib/sketches/storage'
@@ -107,6 +107,29 @@ test('hit testing handles rotated shapes, open edges, vertex dots, visibility, l
   assert.equal(hitTest({ ...scene, objects: [{ ...rectangle, visible: false }] }, { x: 100, y: 100 }), undefined)
   const hollow = { ...rectangle, appearance: { ...rectangle.appearance, fill: { kind: 'none' as const } } }
   assert.equal(contains(hollow, { x: 100, y: 100 }, 2), false)
+})
+
+test('freehand accepts a single-dot stroke, samples connected dots, and stays distinct from polyline for erasing', () => {
+  const dot = fromPoints('freehand', [{ x: 40, y: 50 }])
+  assert.equal(dot.type, 'freehand')
+  assert.equal(dot.name, 'Freehand')
+  assert.ok(isScene({ ...emptyScene(), objects: [dot] }))
+  assert.equal(contains(dot, { x: 40, y: 50 }, 1), true)
+  const stroke = fromPoints('freehand', [{ x: 10, y: 10 }, { x: 20, y: 18 }, { x: 33, y: 12 }, { x: 48, y: 30 }])
+  assert.ok(isScene({ ...emptyScene(), objects: [stroke] }))
+  assert.equal(contains(stroke, { x: 26, y: 15 }, 4), true)
+  assert.deepEqual(worldVertices(editVertex(dot, 0, { x: 70, y: 80 }))[0], { x: 70, y: 80 })
+  const polyline = fromPoints('polyline', [{ x: 10, y: 10 }, { x: 48, y: 30 }])
+  const scene = { ...emptyScene(), objects: [stroke, polyline, fromBounds('rectangle', { x: 0, y: 0 }, { x: 80, y: 40 })] }
+  const erased = { ...scene, objects: scene.objects.filter(o => o.type !== 'freehand' || !contains(o, { x: 20, y: 18 }, 6)) }
+  assert.equal(erased.objects.length, 2)
+  assert.deepEqual(erased.objects.map(o => o.type), ['polyline', 'rectangle'])
+  assert.equal(isScene({ ...emptyScene(), objects: [fromPoints('freehand', [{ x: 2, y: 2 }, { x: 2, y: 2 }])] }), false)
+  const sampled = sampleStroke([{ x: 0, y: 0 }], { x: 30, y: 0 }, 3)
+  assert.ok(sampled.length > 5)
+  assert.deepEqual(sampled[0], { x: 0, y: 0 })
+  assert.deepEqual(sampled.at(-1), { x: 30, y: 0 })
+  assert.equal(sampleStroke([{ x: 5, y: 5 }], { x: 6, y: 5 }, 3).length, 1)
 })
 
 test('rotated resize anchors the opposite corner and roundtrips transforms', () => {
@@ -214,6 +237,7 @@ test('project validation rejects malformed, unsupported, duplicate IDs, nonfinit
   assert.equal(isScene({ ...scene, objects: [{ ...o, appearance: null }] }), false)
   assert.equal(isScene({ ...scene, objects: [{ ...o, type: 'quad', geometry: { kind: 'vertices', points: [{ x: 0, y: 0 }] } }] }), false)
   assert.equal(isScene({ ...scene, objects: [fromPoints('polyline', [{ x: 2, y: 2 }, { x: 2, y: 2 }])] }), false)
+  assert.ok(isScene({ ...scene, objects: [fromPoints('freehand', [{ x: 8, y: 9 }])] }))
   assert.equal(validCanvas(1.2, 600), false); assert.equal(validCanvas(8192, 8192), false)
   assert.throws(() => parseProject(projectJSON({ ...scene, width: -1 }, 'Bad')), /Invalid project/)
 })

@@ -38,10 +38,11 @@ export function isScene(value: unknown): value is Scene {
     vertices += g.points.length
     if (vertices > 100000) return false
     const count = type === 'triangle' ? 3 : type === 'quad' ? 4 : type === 'line' ? 2 : null
-    if (count !== null ? g.points.length !== count : g.points.length < 2) return false
+    const minimum = type === 'freehand' ? 1 : 2
+    if (count !== null ? g.points.length !== count : g.points.length < minimum) return false
     const points = g.points as Point2D[]
     if (!points.every(p => finite(p.x * (o.scaleX as number)) && finite(p.y * (o.scaleY as number)) && finite(Math.abs(o.x as number) + Math.abs(p.x * (o.scaleX as number)) + Math.abs(p.y * (o.scaleY as number))) && finite(Math.abs(o.y as number) + Math.abs(p.x * (o.scaleX as number)) + Math.abs(p.y * (o.scaleY as number))))) return false
-    if (openShape(type) && !points.some(p => p.x !== points[0].x || p.y !== points[0].y)) return false
+    if (openShape(type) && !(type === 'freehand' && points.length === 1) && !points.some(p => p.x !== points[0].x || p.y !== points[0].y)) return false
     // Canonical local vertices are centered on their bounds, making pivot semantics unambiguous.
     const xs = g.points.map(p => p.x), ys = g.points.map(p => p.y)
     return Math.abs(Math.min(...xs) + Math.max(...xs)) < 1e-6 && Math.abs(Math.min(...ys) + Math.max(...ys)) < 1e-6
